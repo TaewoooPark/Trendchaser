@@ -1,35 +1,80 @@
-<div align="center">
-
-<img src="./assets/logo.png" alt="Trendchaser" width="220" />
-
 # Trendchaser
 
-*A prism for the AI signal stream — disperses noise, converges what matters.*
+**A prism for the AI signal stream — disperses noise, converges what matters.**
 
-[![Status](https://img.shields.io/badge/status-live-22c55e?style=flat-square)](#how-it-arrives)
-[![Cadence](https://img.shields.io/badge/cadence-3%20briefs%2Fday-3b82f6?style=flat-square)](#how-it-arrives)
-[![Delivery](https://img.shields.io/badge/delivery-Telegram%20%2B%20KakaoTalk-26a5e4?style=flat-square&logo=telegram&logoColor=white)](#how-it-arrives)
-[![Built with](https://img.shields.io/badge/built%20with-Claude%20Code-d97757?style=flat-square)](https://claude.com/claude-code)
-[![License](https://img.shields.io/badge/docs-MIT-fafafa?style=flat-square)](./LICENSE)
-[![Last Commit](https://img.shields.io/github/last-commit/TaewoooPark/Trendchaser?style=flat-square&color=8b5cf6)](https://github.com/TaewoooPark/Trendchaser/commits)
+<p align="center">
+  <img src="https://img.shields.io/github/license/TaewoooPark/Trendchaser?style=flat-square&labelColor=000000&color=333333" alt="License">
+  <img src="https://img.shields.io/github/stars/TaewoooPark/Trendchaser?style=flat-square&logo=github&logoColor=white&labelColor=000000&color=333333" alt="GitHub stars">
+  <img src="https://img.shields.io/github/last-commit/TaewoooPark/Trendchaser?style=flat-square&labelColor=000000&color=333333" alt="Last commit">
+  <img src="https://img.shields.io/badge/status-live-000000?style=flat-square&labelColor=000000&color=333333" alt="Status">
+  &nbsp;
+  <img src="https://img.shields.io/badge/Python-000000?style=flat-square&logo=python&logoColor=white&labelColor=000000" alt="Python">
+  <img src="https://img.shields.io/badge/Claude%20Code-000000?style=flat-square&logo=anthropic&logoColor=white&labelColor=000000" alt="Claude Code">
+  <img src="https://img.shields.io/badge/Telegram-000000?style=flat-square&logo=telegram&logoColor=white&labelColor=000000" alt="Telegram">
+  <img src="https://img.shields.io/badge/KakaoTalk-000000?style=flat-square&logo=kakaotalk&logoColor=white&labelColor=000000" alt="KakaoTalk">
+  &nbsp;
+  <img src="https://img.shields.io/badge/HuggingFace-000000?style=flat-square&logo=huggingface&logoColor=white&labelColor=000000" alt="HuggingFace">
+  <img src="https://img.shields.io/badge/arXiv-000000?style=flat-square&logo=arxiv&logoColor=white&labelColor=000000" alt="arXiv">
+  <img src="https://img.shields.io/badge/GitHub%20Trending-000000?style=flat-square&logo=github&logoColor=white&labelColor=000000" alt="GitHub Trending">
+  <img src="https://img.shields.io/badge/Hacker%20News-000000?style=flat-square&logo=ycombinator&logoColor=white&labelColor=000000" alt="Hacker News">
+</p>
 
-[**한국어 README**](./README.ko.md)
+> *"Reading all of it is impossible. Reading none of it means missing the actual shifts."*
 
-</div>
+[한국어 README](./README.ko.md) &nbsp;·&nbsp; [**taewoopark.com** — author site](https://taewoopark.com)
+
+<p align="center">
+  <img src="./assets/logo.png" alt="Trendchaser logo — concentric points dispersing and converging like light through a prism." width="320">
+</p>
 
 ---
 
-> 🟢 **This repository documents the technical background of Trendchaser.**
+> **This repository documents the technical background of Trendchaser.**
 > The actual live briefs are delivered to a public KakaoTalk open chat (anonymous join allowed):
 > **→ https://open.kakao.com/o/pfQMgHsi**
 >
-> Source code is kept private. This repo is documentation only.
+> Source code is kept private. This repository is documentation only.
+
+---
+
+## Why Trendchaser?
+
+The daily AI/dev firehose is too wide to read and too important to ignore. Most newsletters either hand you a bullet list and call it curation, or wrap empty buzzwords around stale links.
+
+| Traditional AI newsletter | Trendchaser |
+|---|---|
+| Daily digest of links | Three short briefs a day, hour-resolution recency |
+| Bullet list, no context | Headline + 3–5 plain sentences, source link |
+| Same story for a week | 14-day cumulative dedup — repeats killed at source |
+| One feed dies, the page is empty | Failure isolation — the others still ship |
+| Synthesized URLs from search | Only URLs the fetcher actually collected |
+
+The core idea is **disperse → score → converge**: pull the full spectrum of sources, drop the wavelengths that don't matter, and reassemble what's left into something a person can read in two minutes.
+
+---
+
+## Why a prism?
+
+A prism takes a single beam of white light and **disperses** it into the spectrum that was already inside — then a second prism **converges** the parts you actually need back into a usable beam.
+
+Trendchaser is that second prism for your daily AI/dev feed.
+
+The beam arriving each morning is already too wide: HuggingFace papers, GitHub trending, Anthropic and OpenAI posts, arxiv, Hacker News, curators like Simon Willison, lab newsletters, the better Substacks. Trendchaser stands at the focal point: it disperses the full spectrum, drops the wavelengths that don't matter, and converges what's left into three short briefs a day.
+
+```
+   sources ──┐
+   sources ──┤        ╱╲          ╲   ╱
+   sources ──┼──────▶ ╱  ╲ ──────▶ ╲ ╱ ──▶  brief
+   sources ──┤       ╱    ╲        ╳
+   sources ──┘      ╱──────╲      ╱ ╲
+                  disperse + score   converge
+```
 
 ---
 
 ## What you receive
 
-Three short news briefs a day, sent straight to your phone. Each one is a tight read — bold headline, three to five sentences of plain context, a source link. No bullet salad, no buzzword soup, no "thought leadership."
+Three short news briefs a day, sent straight to your phone. Each item is a tight read — bold headline, three to five sentences of plain context, a source link.
 
 ```
 🤖 AI
@@ -49,30 +94,9 @@ You read it like a newspaper. You don't run anything.
 
 ---
 
-## Why a prism?
-
-A prism takes a single beam of white light and **disperses** it into the spectrum that was already inside — then a second prism **converges** the parts you actually need back into a usable beam.
-
-Trendchaser is that second prism for your daily AI/dev feed.
-
-The beam arriving each morning is already too wide: HuggingFace papers, GitHub trending, Anthropic and OpenAI posts, arxiv, Hacker News, curators like Simon Willison, lab newsletters, the better Substacks. Reading all of it is impossible. Reading none of it means missing the actual shifts.
-
-Trendchaser stands at the focal point: it disperses the full spectrum, drops the wavelengths that don't matter, and converges what's left into three short briefs a day.
-
-```
-   sources ──┐
-   sources ──┤        ╱╲          ╲   ╱
-   sources ──┼──────▶ ╱  ╲ ──────▶ ╲ ╱ ──▶  brief
-   sources ──┤       ╱    ╲        ╳
-   sources ──┘      ╱──────╲      ╱ ╲
-                  disperse + score   converge
-```
-
----
-
 ## How it arrives
 
-Three slots a day, Korea time:
+Three slots a day, Korea time.
 
 | Slot | When (KST) | What's in it |
 |---|---|---|
@@ -90,12 +114,14 @@ If a story already appeared in any brief in the last 14 days, it won't appear ag
 
 A small Python pipeline that runs in [Claude Code Routines](https://claude.com/claude-code) on the cloud:
 
-1. **Fetch** — 16 active sources in parallel (HuggingFace, arxiv, GitHub Trending, lab blogs, curator feeds, YouTube, newsletters)
-2. **Deduplicate** — across sources and across the last 14 days of briefs, by canonical URL + normalized title
-3. **Enrich** — pull the body of the top ~30 candidates so scoring reads the actual content, not just the headline
-4. **Score** — signal × source weight, semantic affinity to a curation profile, recency (hour-resolution decay), velocity, freshness penalty for recently-shipped stories
-5. **Write** — the brief is composed by the routine itself in news-brief tone, headline-then-paragraph
-6. **Deliver** — Telegram (HTML, chunked under 4096 chars) → KakaoTalk open chat relay → optional Notion archive
+| Stage | What it does |
+|---|---|
+| **1. Fetch** | 16 active sources in parallel — HuggingFace, arxiv, GitHub Trending, lab blogs, curator feeds, YouTube, newsletters |
+| **2. Deduplicate** | Across sources and across the last 14 days of briefs, by canonical URL + normalized title |
+| **3. Enrich** | Pull the body of the top ~30 candidates so scoring reads the actual content, not just the headline |
+| **4. Score** | signal × source weight, semantic affinity to a curation profile, hour-resolution recency decay, velocity, freshness penalty |
+| **5. Write** | Brief composed by the routine itself in news-brief tone — headline, then paragraph |
+| **6. Deliver** | Telegram (HTML, chunked under 4096 chars) → KakaoTalk open chat relay → optional Notion archive |
 
 The full pipeline is implemented as a 12-step curation routine that runs three times a day without human intervention.
 
@@ -119,21 +145,23 @@ Live operation. The routine runs three times a day at 10:00 / 15:00 / 22:00 KST 
 
 ## Author
 
-Built by **Taewoo Park** — physics + math @ KAIST, research intern at the KAIST Ultrafast Spin Dynamics Lab, working on aligning physics, code, and culture toward a civilization-scale solution.
+Built by **Taewoo Park** — physics + math @ KAIST, research intern at the KAIST Ultrafast Spin Dynamics Lab. Aligning physics, code, and culture toward a civilization-scale solution.
 
-[![Website](https://img.shields.io/badge/Website-taewoopark.com-0a0a0a?style=flat-square&logo=safari&logoColor=white)](https://taewoopark.com)
-[![GitHub](https://img.shields.io/badge/GitHub-TaewoooPark-181717?style=flat-square&logo=github&logoColor=white)](https://github.com/TaewoooPark)
-[![X](https://img.shields.io/badge/X-@theoverstrcture-000000?style=flat-square&logo=x&logoColor=white)](https://x.com/theoverstrcture)
-[![LinkedIn](https://img.shields.io/badge/LinkedIn-Taewoo%20Park-0a66c2?style=flat-square&logo=linkedin&logoColor=white)](https://www.linkedin.com/in/taewoo-park-427a05352)
-[![Instagram](https://img.shields.io/badge/Instagram-@t.wo0__x-e4405f?style=flat-square&logo=instagram&logoColor=white)](https://www.instagram.com/t.wo0_x/)
-[![Archive](https://img.shields.io/badge/Archive-@hustlyarchiv.kr-c026d3?style=flat-square&logo=instagram&logoColor=white)](https://www.instagram.com/hustlyarchiv.kr/)
-[![Email](https://img.shields.io/badge/Email-ptw151125@kaist.ac.kr-ea4335?style=flat-square&logo=gmail&logoColor=white)](mailto:ptw151125@kaist.ac.kr)
+<p align="center">
+  <a href="https://taewoopark.com"><img src="https://img.shields.io/badge/Website-taewoopark.com-000000?style=flat-square&logo=safari&logoColor=white&labelColor=000000" alt="Website"></a>
+  <a href="https://github.com/TaewoooPark"><img src="https://img.shields.io/badge/GitHub-TaewoooPark-000000?style=flat-square&logo=github&logoColor=white&labelColor=000000" alt="GitHub"></a>
+  <a href="https://x.com/theoverstrcture"><img src="https://img.shields.io/badge/X-@theoverstrcture-000000?style=flat-square&logo=x&logoColor=white&labelColor=000000" alt="X"></a>
+  <a href="https://www.linkedin.com/in/taewoo-park-427a05352"><img src="https://img.shields.io/badge/LinkedIn-Taewoo%20Park-000000?style=flat-square&logo=linkedin&logoColor=white&labelColor=000000" alt="LinkedIn"></a>
+  <a href="https://www.instagram.com/t.wo0_x/"><img src="https://img.shields.io/badge/Instagram-@t.wo0__x-000000?style=flat-square&logo=instagram&logoColor=white&labelColor=000000" alt="Instagram"></a>
+  <a href="https://www.instagram.com/hustlyarchiv.kr/"><img src="https://img.shields.io/badge/Archive-@hustlyarchiv.kr-000000?style=flat-square&logo=instagram&logoColor=white&labelColor=000000" alt="Instagram archive"></a>
+  <a href="mailto:ptw151125@kaist.ac.kr"><img src="https://img.shields.io/badge/Email-ptw151125@kaist.ac.kr-000000?style=flat-square&logo=gmail&logoColor=white&labelColor=000000" alt="Email"></a>
+</p>
 
 Other things I'm building:
-[NODEPROMPT](https://github.com/TaewoooPark/NODEPROMPT) · [PAIDEIA](https://github.com/TaewoooPark/PAIDEIA) · [PAIDEIA-codex](https://github.com/TaewoooPark/PAIDEIA-codex) · [taewoopark.com](https://github.com/TaewoooPark/taewoopark.com)
+[NODEPROMPT](https://github.com/TaewoooPark/NODEPROMPT) &nbsp;·&nbsp; [PAIDEIA](https://github.com/TaewoooPark/PAIDEIA) &nbsp;·&nbsp; [PAIDEIA-codex](https://github.com/TaewoooPark/PAIDEIA-codex) &nbsp;·&nbsp; [taewoopark.com](https://github.com/TaewoooPark/taewoopark.com)
 
 ---
 
-<div align="center">
-<sub>Trendchaser — disperse, score, converge.</sub>
-</div>
+<p align="center">
+  <sub>Trendchaser — disperse, score, converge.</sub>
+</p>
