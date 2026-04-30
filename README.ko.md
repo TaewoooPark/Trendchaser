@@ -67,7 +67,7 @@
 
 ## 받는 사람의 입장에서
 
-하루 세 번, 짧은 뉴스 브리프가 폰으로 도착한다. 한 항목은 굵은 헤드라인 한 줄과 3–5문장의 줄글, 그리고 출처 링크.
+하루 네 번, 짧은 뉴스 브리프가 폰으로 도착한다. 한 항목은 굵은 헤드라인 한 줄과 3–5문장의 줄글, 그리고 출처 링크.
 
 ```
 🤖 AI
@@ -106,13 +106,14 @@ Trendchaser는 당신의 일일 AI/Dev 피드에 대해 그 두 번째 프리즘
 
 ## 어떻게 도착하는가
 
-하루 세 슬롯 (KST).
+하루 네 슬롯 (KST).
 
 | 슬롯 | 시각 | Lookback 창 | 구성 |
 |---|---|---|---|
 | **morning** | 10:00 | 직전 13시간 | AI 5 + general 3 |
-| **afternoon** | 15:00 | 직전 6시간 | AI 3 + general 2 |
-| **evening** | 22:00 | 직전 8시간 | AI 3 + general 2 |
+| **afternoon** | 14:00 | 직전 5시간 | AI 3 + general 2 |
+| **evening** | 18:00 | 직전 5시간 | AI 3 + general 2 |
+| **night** | 22:00 | 직전 5시간 | AI 3 + general 2 |
 
 Lookback 창은 슬롯 간격에 맞춰 한 기사가 최대 한 브리프에만 들어가도록 튜닝되어 있다. 14일 누적 dedup으로 소스 단계에서 중복을 제거한다. 한 소스가 죽어도 나머지는 그대로 송출된다.
 
@@ -123,7 +124,7 @@ Lookback 창은 슬롯 간격에 맞춰 한 기사가 최대 한 브리프에만
 ```
                 ┌──────────────────────────────────────────────────────────────┐
                 │                Claude Code Routine (cloud)                    │
-                │  cron at 10:00 / 15:00 / 22:00 KST                            │
+                │  cron at 10:00 / 14:00 / 18:00 / 22:00 KST                            │
                 └──────────────────────────────────────────────────────────────┘
                                           │
                                           ▼
@@ -423,7 +424,7 @@ Phase-09 dry-run 검증 (live credential 없이 측정):
 | arxiv body 추출 일치율 (summary == body_excerpt) | 37/37 = **100%** |
 | Telegram self-test (HTML escape, no double-escape, underscore URL 링크) | pass |
 
-라이브: routine이 매일 KST 10:00 / 15:00 / 22:00에 실행; 첫 sample 브리프는 단일 3478자 Telegram chunk로 송출됨.
+라이브: routine이 매일 KST 10:00 / 14:00 / 18:00 / 22:00에 실행; 첫 sample 브리프는 단일 3478자 Telegram chunk로 송출됨.
 
 ---
 
@@ -440,7 +441,7 @@ Phase-09 dry-run 검증 (live credential 없이 측정):
 
 ## 진행 상태
 
-라이브 운영 중. 매일 KST 10:00 / 15:00 / 22:00에 routine이 실행되어 위 KakaoTalk 오픈채팅으로 송출됩니다.
+라이브 운영 중. 매일 KST 10:00 / 14:00 / 18:00 / 22:00에 routine이 실행되어 위 KakaoTalk 오픈채팅으로 송출됩니다.
 
 ---
 

@@ -106,13 +106,14 @@ Trendchaser is that second prism for your daily AI/dev feed.
 
 ## How it arrives
 
-Three slots a day, Korea time.
+Four slots a day, Korea time.
 
 | Slot | When (KST) | Lookback window | Composition |
 |---|---|---|---|
 | **morning** | 10:00 | last 13h | 5 AI + 3 general |
-| **afternoon** | 15:00 | last 6h | 3 AI + 2 general |
-| **evening** | 22:00 | last 8h | 3 AI + 2 general |
+| **afternoon** | 14:00 | last 5h | 3 AI + 2 general |
+| **evening** | 18:00 | last 5h | 3 AI + 2 general |
+| **night** | 22:00 | last 5h | 3 AI + 2 general |
 
 Lookback windows are tuned to slot spacing so each story enters at most one brief. Cumulative deduplication across 14 days of brief history kills repeats at source. Source failures are isolated — a 503 on one feed does not block the others.
 
@@ -123,7 +124,7 @@ Lookback windows are tuned to slot spacing so each story enters at most one brie
 ```
                 ┌──────────────────────────────────────────────────────────────┐
                 │                    Claude Code Routine (cloud)                │
-                │  triggered by cron at 10:00 / 15:00 / 22:00 KST               │
+                │  triggered by cron at 10:00 / 14:00 / 18:00 / 22:00 KST               │
                 └──────────────────────────────────────────────────────────────┘
                                           │
                                           ▼
@@ -423,7 +424,7 @@ Phase-09 dry-run validation (no live credentials):
 | arxiv body extraction parity (summary == body_excerpt) | 37/37 = **100%** |
 | Telegram self-test (HTML escape, no double-escape, link with underscore URL) | pass |
 
-Live operation: routine runs three times a day at 10:00 / 15:00 / 22:00 KST; first sample brief delivered as a single 3478-char Telegram chunk.
+Live operation: routine runs four times a day at 10:00 / 14:00 / 18:00 / 22:00 KST; first sample brief delivered as a single 3478-char Telegram chunk.
 
 ---
 
@@ -440,7 +441,7 @@ Live operation: routine runs three times a day at 10:00 / 15:00 / 22:00 KST; fir
 
 ## Project status
 
-Live operation. The routine runs three times a day at 10:00 / 15:00 / 22:00 KST and broadcasts to the KakaoTalk open chat linked above.
+Live operation. The routine runs four times a day at 10:00 / 14:00 / 18:00 / 22:00 KST and broadcasts to the KakaoTalk open chat linked above.
 
 ---
 
