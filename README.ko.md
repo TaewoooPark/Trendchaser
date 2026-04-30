@@ -267,8 +267,8 @@ KakaoTalk relay는 Telegram의 downstream — 브리프 안 bare URL이 Android 
 
 | ID | Type | Weight | Feed |
 |---|---|---|---|
-| `aeon` | RSS | 1.0 | aeon.co/feed.atom |
-| `psyche` | RSS | 1.0 | psyche.co/feed |
+| `oneusefulthing` | RSS | 1.3 | oneusefulthing.org/feed — Ethan Mollick, 응용 AI 에세이 |
+| `pragmaticengineer` | RSS | 1.2 | newsletter.pragmaticengineer.com/feed — Gergely Orosz, 소프트웨어 엔지니어링 longform |
 | `thebrowser` | Gmail Newsletter | 1.4 | label=Newsletter, from=caroline@thebrowser.com |
 | `notboring` | Gmail Newsletter | 1.2 | label=Newsletter, from=packy@notboring.co |
 
@@ -286,7 +286,7 @@ KakaoTalk relay는 Telegram의 downstream — 브리프 안 bare URL이 Android 
 |---|---|---|---|
 | `youtube_ai` | YouTube RSS | 0.9 | Yannic Kilcher · Andrej Karpathy · Two Minute Papers · Latent Space · Dwarkesh Patel · Lex Fridman (채널당 4개, 48h lookback) |
 
-**AI 분류 규칙** — `{hf_papers, hf_models_trending, arxiv_ai, anthropic_news, openai_blog, googleai_blog, deepmind_blog, huggingface_blog, simonwillison, latent_space, interconnects, smol_ai, alignment_forum, github_trending_python, github_trending_overall}` 출처는 정의상 AI. 그 외 출처도 title + body excerpt가 `profile.md` AI Keywords와 강하게 매치되면 AI; 아니면 general.
+**AI 분류 규칙** — `{hf_papers, hf_models_trending, arxiv_ai, anthropic_news, openai_blog, googleai_blog, deepmind_blog, huggingface_blog, simonwillison, latent_space, interconnects, smol_ai, alignment_forum, github_trending_python, github_trending_overall, oneusefulthing}` 출처는 정의상 AI. 그 외 출처도 title + body excerpt가 `profile.md` AI Keywords와 강하게 매치되면 AI; 아니면 general.
 
 ---
 

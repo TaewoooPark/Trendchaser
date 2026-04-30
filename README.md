@@ -267,8 +267,8 @@ KakaoTalk relay is downstream of Telegram — bare-URL formatting in the brief s
 
 | ID | Type | Weight | Feed |
 |---|---|---|---|
-| `aeon` | RSS | 1.0 | aeon.co/feed.atom |
-| `psyche` | RSS | 1.0 | psyche.co/feed |
+| `oneusefulthing` | RSS | 1.3 | oneusefulthing.org/feed — Ethan Mollick, applied AI essays |
+| `pragmaticengineer` | RSS | 1.2 | newsletter.pragmaticengineer.com/feed — Gergely Orosz, software engineering longform |
 | `thebrowser` | Gmail Newsletter | 1.4 | label=Newsletter, from=caroline@thebrowser.com |
 | `notboring` | Gmail Newsletter | 1.2 | label=Newsletter, from=packy@notboring.co |
 
@@ -286,7 +286,7 @@ KakaoTalk relay is downstream of Telegram — bare-URL formatting in the brief s
 |---|---|---|---|
 | `youtube_ai` | YouTube RSS | 0.9 | Yannic Kilcher · Andrej Karpathy · Two Minute Papers · Latent Space · Dwarkesh Patel · Lex Fridman (4 items per channel, 48h lookback) |
 
-**AI classification rule** — items from `{hf_papers, hf_models_trending, arxiv_ai, anthropic_news, openai_blog, googleai_blog, deepmind_blog, huggingface_blog, simonwillison, latent_space, interconnects, smol_ai, alignment_forum, github_trending_python, github_trending_overall}` are AI by definition. Items from other sources are AI if title + body excerpt match `profile.md` AI Keywords; else general.
+**AI classification rule** — items from `{hf_papers, hf_models_trending, arxiv_ai, anthropic_news, openai_blog, googleai_blog, deepmind_blog, huggingface_blog, simonwillison, latent_space, interconnects, smol_ai, alignment_forum, github_trending_python, github_trending_overall, oneusefulthing}` are AI by definition. Items from other sources are AI if title + body excerpt match `profile.md` AI Keywords; else general.
 
 ---
 
