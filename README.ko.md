@@ -219,7 +219,7 @@ KakaoTalk relay는 Telegram의 downstream — 브리프 안 bare URL이 Android 
 
 ## 소스 카탈로그
 
-`sources.yaml`(비공개 운영 레포)에 정의된 25개 피드. Weight와 파라미터:
+`sources.yaml`(비공개 운영 레포)에 정의된 32개 피드. Weight와 파라미터:
 
 ### AI Trend Primary
 
@@ -236,18 +236,37 @@ KakaoTalk relay는 Telegram의 downstream — 브리프 안 bare URL이 Android 
 |---|---|---|---|
 | `anthropic_news` | RSS | **1.6** | anthropic.com/news/rss.xml |
 | `openai_blog` | RSS | 1.5 | openai.com/blog/rss.xml |
+| `meta_ai` | RSS | 1.4 | ai.meta.com/blog/rss/ — FAIR / Llama / SAM |
 | `googleai_blog` | RSS | 1.3 | blog.google/technology/ai/rss/ |
 | `deepmind_blog` | RSS | 1.3 | deepmind.google/blog/rss.xml |
 | `huggingface_blog` | RSS | 1.3 | huggingface.co/blog/feed.xml |
+| `mistral` | RSS | 1.3 | mistral.ai/news/feed.xml |
 
-### Curators
+### Curators & AI Newsletters
 
 | ID | Type | Weight | Feed |
 |---|---|---|---|
 | `simonwillison` | RSS | 1.4 | simonwillison.net/atom/everything/ |
+| `import_ai` | RSS | 1.4 | importai.substack.com/feed — Jack Clark 주간 digest |
 | `latent_space` | RSS | 1.3 | latent.space/feed |
 | `interconnects` | RSS | 1.3 | interconnects.ai/feed |
 | `smol_ai` | RSS | 1.2 | buttondown.email/ainews/rss |
+
+### Dev Tools / MCP / Claude Code
+
+| ID | Type | Weight | Feed |
+|---|---|---|---|
+| `claude_code_releases` | Atom | **1.5** | github.com/anthropics/claude-code/releases.atom |
+| `mcp_releases` | Atom | 1.3 | github.com/modelcontextprotocol/specification/releases.atom |
+
+### 한국 AI 생태계
+
+| ID | Type | Weight | Feed |
+|---|---|---|---|
+| `upstage_blog` | RSS | 1.2 | upstage.ai/blog/rss.xml — Solar 모델, document AI |
+| `lg_ai_research` | RSS | 1.1 | lgresearch.ai/blog/rss.xml — EXAONE |
+| `naver_d2` | Atom | 1.0 | d2.naver.com/d2.atom — CLOVA / HyperCLOVA |
+| `kakao_tech` | RSS | 1.0 | tech.kakao.com/feed/ — Kakao Brain |
 
 ### Raw Database
 
@@ -261,7 +280,7 @@ KakaoTalk relay는 Telegram의 downstream — 브리프 안 bare URL이 Android 
 |---|---|---|---|
 | `hn_top` | Hacker News (Algolia) | 1.2 | tags=story, min_points=80, min_num_comments=20, lookback=30h |
 | `techmeme` | RSS | 1.0 | techmeme.com/feed.xml |
-| `producthunt` | RSS | 0.9 | producthunt.com/feed, max_items=15 |
+| `producthunt` | RSS | 0.6 | producthunt.com/feed, max_items=15 (저신호로 가중치 낮춤) |
 
 ### Longform & Essays
 
@@ -276,9 +295,8 @@ KakaoTalk relay는 Telegram의 downstream — 브리프 안 bare URL이 Android 
 
 | ID | Type | Weight | Feed |
 |---|---|---|---|
-| `lesswrong` | RSS | 1.1 | lesswrong.com/feed.xml?karmaThreshold=30, max=15 |
+| `lesswrong` | RSS | 1.1 | lesswrong.com/feed.xml?karmaThreshold=60, max=15 |
 | `alignment_forum` | RSS | 1.0 | alignmentforum.org/feed.xml?karmaThreshold=20, max=10 |
-| `edge_org` | RSS | 0.7 | edge.org/feeds/ |
 
 ### YouTube
 
@@ -286,7 +304,7 @@ KakaoTalk relay는 Telegram의 downstream — 브리프 안 bare URL이 Android 
 |---|---|---|---|
 | `youtube_ai` | YouTube RSS | 0.9 | Yannic Kilcher · Andrej Karpathy · Two Minute Papers · Latent Space · Dwarkesh Patel · Lex Fridman (채널당 4개, 48h lookback) |
 
-**AI 분류 규칙** — `{hf_papers, hf_models_trending, arxiv_ai, anthropic_news, openai_blog, googleai_blog, deepmind_blog, huggingface_blog, simonwillison, latent_space, interconnects, smol_ai, alignment_forum, github_trending_python, github_trending_overall, oneusefulthing}` 출처는 정의상 AI. 그 외 출처도 title + body excerpt가 `profile.md` AI Keywords와 강하게 매치되면 AI; 아니면 general.
+**AI 분류 규칙** — `{hf_papers, hf_models_trending, arxiv_ai, anthropic_news, openai_blog, googleai_blog, deepmind_blog, huggingface_blog, meta_ai, mistral, simonwillison, latent_space, interconnects, smol_ai, import_ai, alignment_forum, github_trending_python, github_trending_overall, oneusefulthing, claude_code_releases, mcp_releases, upstage_blog, lg_ai_research}` 출처는 정의상 AI. 그 외 출처도 title + body excerpt가 `profile.md` AI Keywords와 강하게 매치되면 AI; 아니면 general.
 
 ---
 
