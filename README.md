@@ -226,19 +226,19 @@ KakaoTalk relay is downstream of Telegram — bare-URL formatting in the brief s
 
 ## Source catalog
 
-**72 source channels + 60 X-curated accounts = 132 emission paths** polled every slot, defined in the private operational repo's `sources.yaml`. The 2026-05-04 revision strengthens "freshest signal" capture via release.atom firehoses and new fetcher modes.
+**72 source channels + 75 X-curated accounts = 147 emission paths** polled every slot, defined in the private operational repo's `sources.yaml`. The 2026-05-04 revision strengthens "freshest signal" capture via release.atom firehoses and new fetcher modes.
 
 | Category | Count | Role |
 |---|---:|---|
 | Open-source release atoms (firehose) | **20** | tag push instant — models, frameworks, SDKs |
 | AI lab direct (blog · sitemap · watch) | 12 | first-party emission |
 | Curators & newsletters | 10 | human-filtered signal |
-| X channels (one fans out to 60 accounts) | 9 | follow list + single-handle feeds |
+| X channels (one fans out to 75 accounts) | 9 | follow list + single-handle feeds |
 | Model/paper platforms (HF, GitHub, arXiv) | 7 | global ranking |
 | Forums & alignment (HN, Lobsters, LessWrong) | 7 | community |
 | Social keyword search (Bluesky, Mastodon, Dev.to) | 6 | hashtag/keyword |
 | Multimedia (YouTube) | 1 | video metadata |
-| **Total** | **72** | + 60 X follow fan-out |
+| **Total** | **72** | + 75 X follow fan-out |
 
 
 ### AI Trend Primary
