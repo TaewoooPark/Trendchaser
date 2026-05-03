@@ -161,7 +161,7 @@ Two-branch publish strategy: `state/seen.json` lives on `main` (next routine rea
 
 ### 1. Fetch — `scripts/fetch_all.py`
 
-Parallel collection across 9 fetcher types (`rss`, `arxiv`, `hn`, `youtube`, `hf_papers`, `hf_models`, `github_trending`, `gmail_newsletter`, `reddit`). Per-source `RateLimiter` (arxiv: 3.0 s, default: 0.2 s). `ThreadPoolExecutor(max_workers=5)`. Each fetcher returns `list[Item]` and may not raise — failures bubble into a `failures[]` array on the orchestrator.
+Parallel collection across 10+ fetcher types (`rss`, `atom`, `arxiv`, `hn`, `youtube`, `hf_papers`, `hf_models` [trending/new mode], `github_trending`, `sitemap`, `gmail_newsletter`, `vercel_x`). Per-source `RateLimiter` (arxiv: 3.0 s, default: 0.2 s). `ThreadPoolExecutor(max_workers=5)`. Each fetcher returns `list[Item]` and may not raise — failures bubble into a `failures[]` array on the orchestrator.
 
 URL canonicalization via `canonicalize_url` (strip UTM/tracking params, lowercase host, normalize trailing slash). Title normalization via NFKD + lowercase + whitespace collapse. Item ID = `sha1(canonical_url)[:40]`.
 
@@ -175,24 +175,30 @@ Three deduplication layers:
 
 ### 3. Enrich — `scripts/enrich.py`
 
-Pre-rank by `(weight × normalized score) + 0.3 × normalized velocity`, take top 30. For each, fetch and extract body via `trafilatura.fetch_url + extract`, truncate to 1500 chars, store in `body_excerpt`. Fail-open: per-item try/except, failures leave `body_excerpt=""`.
+Pre-rank by `(weight × normalized score) + 0.3 × normalized velocity`, take top 30. Trending sources (`github_trending_*`, `hf_models_trending`) are multiplied by a **novelty factor** to penalize old repos riding short-term hype — `created_at`-based: ≤7d 1.3× / ≤30d 1.0× / ≤90d 0.7× / >90d 0.4×. For each item, fetch and extract body via `trafilatura.fetch_url + extract`, truncate to 1500 chars, store in `body_excerpt`. Fail-open: per-item try/except, failures leave `body_excerpt=""`.
 
-`SKIP_TRAFILATURA_SOURCES = {arxiv_ai, youtube_ai, hf_papers, hf_models_trending, github_trending_python, github_trending_overall}` — for these sources the upstream summary is more accurate than DOM extraction.
+`SKIP_TRAFILATURA_SOURCES = {arxiv_ai, youtube_ai, hf_papers, hf_models_trending, hf_models_new, github_trending_*}` — for these sources the upstream summary is more accurate than DOM extraction.
 
 `ThreadPoolExecutor(max_workers=8)`. Empirical wall-time ≈ 3 s for top-30.
 
+A **shortlist** stage (`scripts/shortlist.py`) then enforces a hard cap on trending sources: max 2 trending items in the AI section, max 1 in General. This blocks "old trending dominating the brief" structurally, before the brief-writing step.
+
 ### 4. Score — `prompts/curate.md` Step 6
 
-Claude reads `profile.md` (curation profile) and computes a per-item composite:
+Claude reads `profile.md` (curation profile) and computes a per-item composite. As of 2026-05-04, this is a **6-axis system with a novelty axis added**:
 
 ```
-score = 0.30·signal + 0.30·affinity + 0.25·recency + 0.10·velocity + 0.05·freshness
+score = 0.25·signal + 0.25·affinity + 0.20·recency + 0.20·novelty + 0.05·velocity + 0.05·freshness
 ```
 
 Component definitions:
 - **signal** — `source_weight × normalized(source_score)`. Sources without numeric score use weight only (0.6 baseline).
 - **affinity** — semantic match between item title + body excerpt and `profile.md` Priorities / AI Keywords / Boost.
 - **recency** — hour-resolution decay: ≤3h → 100, ≤6h → 85, ≤12h → 65, ≤24h → 40, >24h → 15.
+- **novelty** — "is this a true first-broadcast signal, or trending piggyback?" Distinguishes primary publishers from re-discovery feeds.
+  - First-party broadcast (lab blog / release.atom / papers / firehose) → 100
+  - Curators / aggregators → 65
+  - Trending (existing artifacts re-surfacing) → `created_at`-graded (≤7d 80 / ≤30d 50 / ≤90d 25 / >90d 0)
 - **velocity** — normalized item velocity (HN/HF score gain over time); 0.5 baseline if absent.
 - **freshness** — penalty for items overlapping the last 14 days of briefs.
 
@@ -220,16 +226,19 @@ KakaoTalk relay is downstream of Telegram — bare-URL formatting in the brief s
 
 ## Source catalog
 
-32 feeds defined; weights and parameters as configured in `sources.yaml` of the private operational repo.
+70+ feeds defined in the private operational repo's `sources.yaml`. The 2026-05-04 revision strengthens "freshest signal" capture via release.atom firehoses and new fetcher modes.
 
 ### AI Trend Primary
 
 | ID | Type | Weight | Parameters |
 |---|---|---|---|
-| `hf_papers` | HuggingFace Daily Papers | **1.7** | 2-day lookback, min_upvotes=3 |
-| `hf_models_trending` | HuggingFace Models | 1.3 | top 20, min_likes_24h=10 |
+| `hf_papers` | HuggingFace Daily Papers | **1.7** | 2-day lookback, min_upvotes=15 |
+| `hf_models_new` | HuggingFace Models (firehose) | **1.5** | New 2026-05-04. Iterates each foundation lab via author filter, sorts `createdAt desc`, top N per author, 7-day window. min_likes/downloads=0. |
 | `github_trending_python` | GitHub Trending | 1.4 | language=python, since=daily, top 25 |
-| `github_trending_overall` | GitHub Trending | 1.2 | all languages, since=daily, top 15 |
+| `github_trending_overall` | GitHub Trending | 1.3 | all languages, since=daily, top 15 |
+| `hf_models_trending` | HuggingFace Models | 0.9 | Demoted 2026-05-04 (1.3 → 0.9). Cumulative-popularity signal, weak on freshness. `hf_models_new` shares the load. |
+
+**Foundation lab whitelist**: 31 orgs added 2026-05-04 — Western (CohereForAI, BlackForestLabs, NousResearch, apple, RekaAI, ai21labs, tiiuae, EleutherAI, bigscience, bigcode, Salesforce, ServiceNow, HuggingFaceH4/TB, Nexusflow), Chinese (moonshotai, Skywork, ZhipuAI, IEITYuan, StepFun-AI, 01-ai, THUDM, OpenBMB, internlm, baichuan-inc, Tencent, Alibaba-NLP, ByteDance), Korean (naver-hyperclovax, kakaocorp). Non-Western labs receive a 1.15× score boost.
 
 ### AI Lab Direct
 
@@ -253,12 +262,28 @@ KakaoTalk relay is downstream of Telegram — bare-URL formatting in the brief s
 | `interconnects` | RSS | 1.3 | interconnects.ai/feed |
 | `smol_ai` | RSS | 1.2 | buttondown.email/ainews/rss |
 
-### Dev Tools / MCP / Claude Code
+### Open Source Releases (Atom firehose)
+
+GitHub `releases.atom` updates within seconds of a tag push — effectively real-time and the earliest first-party broadcast surface for software releases. The 2026-05-04 revision adds 14 LLM-infra / agent-framework / MCP SDK feeds in one batch.
 
 | ID | Type | Weight | Feed |
 |---|---|---|---|
-| `claude_code_releases` | Atom | **1.5** | github.com/anthropics/claude-code/releases.atom |
-| `mcp_releases` | Atom | 1.3 | github.com/modelcontextprotocol/specification/releases.atom |
+| `claude_code_releases` | Atom | **1.5** | anthropics/claude-code |
+| `mcp_releases` | Atom | 1.3 | modelcontextprotocol/specification |
+| `mcp_python_sdk_releases` | Atom | 1.6 | modelcontextprotocol/python-sdk |
+| `mcp_typescript_sdk_releases` | Atom | 1.6 | modelcontextprotocol/typescript-sdk |
+| `openai_python_releases` | Atom | 1.6 | openai/openai-python |
+| `openai_agents_releases` | Atom | 1.6 | openai/openai-agents-python |
+| `openai_swarm_releases` | Atom | 1.5 | openai/swarm |
+| `transformers_releases` | Atom | 1.6 | huggingface/transformers |
+| `accelerate_releases` | Atom | 1.5 | huggingface/accelerate |
+| `diffusers_releases` | Atom | 1.5 | huggingface/diffusers |
+| `peft_releases` | Atom | 1.5 | huggingface/peft |
+| `vllm_releases` | Atom | 1.6 | vllm-project/vllm |
+| `ollama_releases` | Atom | 1.6 | ollama/ollama |
+| `llamacpp_releases` | Atom | 1.6 | ggml-org/llama.cpp |
+| `langchain_releases` | Atom | 1.5 | langchain-ai/langchain |
+| `autogen_releases` | Atom | 1.5 | microsoft/autogen |
 
 ### Korean AI Ecosystem
 
@@ -279,9 +304,16 @@ KakaoTalk relay is downstream of Telegram — bare-URL formatting in the brief s
 
 | ID | Type | Weight | Parameters |
 |---|---|---|---|
-| `hn_top` | Hacker News (Algolia) | 1.2 | tags=story, min_points=80, min_num_comments=20, lookback=30h |
-| `techmeme` | RSS | 1.0 | techmeme.com/feed.xml |
-| `producthunt` | RSS | 0.6 | producthunt.com/feed, max_items=15 (low-signal, deprioritized) |
+| `hn_top` | Hacker News (Algolia, popularity) | 1.2 | tags=story, ai_min_points=120 / general_min_points=150, min_num_comments=20, lookback=30h |
+| `hn_breaking` | Hacker News (Algolia, by date) | **1.4** | New 2026-05-04. `/api/v1/search_by_date`-based 4-hour firehose with a 75-point threshold for AI-keyword matches — catches early momentum before stories trend. |
+| `techmeme` | RSS | 0.7 | techmeme.com/feed.xml (1.0 → 0.7, rumor + politics noise discount) |
+| `producthunt` | RSS | 0.5 | producthunt.com/feed, max_items=15, min_votes=300 |
+
+`hn_top` captures cumulative-popularity stories (already trending); `hn_breaking` captures early-momentum stories (becoming a story right now). The two channels are orthogonal on the time axis.
+
+### X curation (limited)
+
+A small set of personally-curated X follows plus a few official lab accounts is read on a 12-hour lookback per slot. The official X API is **not** used — instead, a small self-hosted relay returns raw text only. This is a slot-by-slot snapshot rather than a live firehose, but it covers cases where lab announcements hit X before the company blog. Curation is delegated to the user's own follow list — channel rotation needs no code change.
 
 ### Longform & Essays
 
@@ -311,13 +343,14 @@ KakaoTalk relay is downstream of Telegram — bare-URL formatting in the brief s
 
 ## Scoring formula
 
-Per-item composite score, computed by Claude in Step 6 of `prompts/curate.md`:
+Per-item composite score, computed by Claude in Step 6 of `prompts/curate.md`. As of 2026-05-04, **6-axis with novelty added**:
 
 ```
-total = 0.30·signal       (source_weight × normalized source score)
-      + 0.30·affinity     (semantic match against profile.md)
-      + 0.25·recency      (hour-resolution decay step function)
-      + 0.10·velocity     (normalized HN/HF velocity)
+total = 0.25·signal       (source_weight × normalized source score)
+      + 0.25·affinity     (semantic match against profile.md)
+      + 0.20·recency      (hour-resolution decay step function)
+      + 0.20·novelty      (first-broadcast vs trending piggyback)
+      + 0.05·velocity     (normalized HN/HF velocity)
       + 0.05·freshness    (penalty for 14-day brief overlap)
 ```
 
@@ -331,6 +364,26 @@ hours since publish    score
         ≤ 24              40
         > 24              15
 ```
+
+Novelty mapping:
+
+```
+source class                          score
+First-party broadcast                  100
+  (lab blog · release.atom ·
+   hf_papers · hn_breaking · x_lab)
+Curator / aggregator                    65
+Trending (artifact re-surfacing)     age-graded
+  ≤7d                                   80
+  ≤30d                                  50
+  ≤90d                                  25
+  >90d                                   0
+arXiv (lagging raw DB)                  50
+```
+
+This axis quantitatively separates "GitHub trending #1, but actually a 2-year-old repo riding a one-day hype" from "nvidia just pushed a release" — roughly trending 1.0× / first-broadcast 1.6×.
+
+**Structural cap** (Step 7 shortlist): trending sources (`github_trending_*`, `hf_models_trending`) are hard-capped at 2 items per AI section / 1 per General section. This is enforced in code before Step 8 (brief authoring), so "old trending dominates the brief" is blocked at the pipeline level.
 
 Selection thresholds: AI items with score < 60 are dropped or count reduced; general items with score < 50 cause the General section to be omitted entirely. Source-diversity guard: max 2 items per `source_id` per section.
 
