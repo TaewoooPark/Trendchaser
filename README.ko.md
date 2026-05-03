@@ -226,7 +226,21 @@ KakaoTalk relay는 Telegram의 downstream — 브리프 안 bare URL이 Android 
 
 ## 소스 카탈로그
 
-`sources.yaml`(비공개 운영 레포)에 정의된 70+ 피드. 2026-05-04 개정에서 "최최신 신호"를 강하게 잡기 위해 release.atom firehose와 새 fetcher 모드를 다수 추가. Weight와 파라미터:
+`sources.yaml`(비공개 운영 레포)에 정의된 **72개 소스 채널 + X 큐레이션 60계정 = 총 132개 발신 경로**를 매 슬롯 동시에 폴링한다. 2026-05-04 개정에서 "최최신 신호"를 강하게 잡기 위해 release.atom firehose와 새 fetcher 모드를 다수 추가했다.
+
+| 카테고리 | 채널 수 | 성격 |
+|---|---:|---|
+| 오픈소스 Release Atom (firehose) | **20** | tag push 즉시 갱신 — 모델·프레임워크·SDK |
+| AI Lab 직속 (블로그·sitemap·watch) | 12 | 1차 발신처 |
+| 큐레이터·뉴스레터 | 10 | 사람이 거른 신호 |
+| X 채널 (그중 1개가 60계정 fan-out) | 9 | follow 리스트 + 단일 계정 |
+| 모델·페이퍼 플랫폼 (HF, GitHub, arXiv) | 7 | 글로벌 ranking |
+| 포럼·토론·Alignment (HN, Lobsters, LessWrong) | 7 | 커뮤니티 |
+| 소셜 검색 (Bluesky, Mastodon, Dev.to) | 6 | 키워드/해시태그 |
+| 멀티미디어 (YouTube) | 1 | 영상 metadata |
+| **합계** | **72** | + X follow fan-out 60계정 |
+
+Weight와 파라미터:
 
 ### AI Trend Primary
 
