@@ -54,20 +54,21 @@
 3. [How it arrives](#how-it-arrives)
 4. [Architecture](#architecture)
 5. [Pipeline stages](#pipeline-stages)
-6. [Source catalog (25 feeds)](#source-catalog)
+6. [Source catalog](#source-catalog)
 7. [Scoring formula](#scoring-formula)
 8. [Tech stack](#tech-stack)
 9. [Failure modes & resilience](#failure-modes--resilience)
 10. [Output format](#output-format)
 11. [Telemetry & validation](#telemetry--validation)
 12. [Design principles](#design-principles)
-13. [Author](#author)
+13. [Releases](#releases)
+14. [Author](#author)
 
 ---
 
 ## What you receive
 
-Three short news briefs a day, sent straight to your phone. Each item is a tight read — bold headline, three to five sentences of plain context, a source link.
+Four short news briefs a day, sent straight to your phone. Each item is a tight read — bold headline, three to five sentences of plain context, a source link.
 
 ```
 🤖 AI
@@ -226,19 +227,19 @@ KakaoTalk relay is downstream of Telegram — bare-URL formatting in the brief s
 
 ## Source catalog
 
-**72 source channels + 75 X-curated accounts = 147 emission paths** polled every slot, defined in the private operational repo's `sources.yaml`. The 2026-05-04 revision strengthens "freshest signal" capture via release.atom firehoses and new fetcher modes.
+**~70 source channels + 83 X-curated accounts = ~153 emission paths** polled every slot, defined in the private operational repo's `sources.yaml`. The 2026-05-04 revision strengthened "freshest signal" capture via release.atom firehoses and new fetcher modes; the 2026-05-11 revision added freshness gates and replaced two dead first-party RSS sources (Meta AI, Mistral) with their official GitHub release atoms.
 
 | Category | Count | Role |
 |---|---:|---|
-| Open-source release atoms (firehose) | **20** | tag push instant — models, frameworks, SDKs |
-| AI lab direct (blog · sitemap · watch) | 12 | first-party emission |
+| Open-source release atoms (firehose) | **23** | tag push instant — models, frameworks, SDKs (3 added 2026-05-11 to replace dead Meta / Mistral RSS) |
+| AI lab direct (blog · sitemap · watch) | 10 | first-party emission (Meta AI / Mistral RSS removed 2026-05-11 — both returned 404 site-wide) |
 | Curators & newsletters | 10 | human-filtered signal |
-| X channels (one fans out to 75 accounts) | 9 | follow list + single-handle feeds |
+| X channels (one fans out to 83 accounts) | 9 | follow list + single-handle feeds |
 | Model/paper platforms (HF, GitHub, arXiv) | 7 | global ranking |
 | Forums & alignment (HN, Lobsters, LessWrong) | 7 | community |
 | Social keyword search (Bluesky, Mastodon, Dev.to) | 6 | hashtag/keyword |
 | Multimedia (YouTube) | 1 | video metadata |
-| **Total** | **72** | + 75 X follow fan-out |
+| **Total** | **~70** | + 83 X follow fan-out |
 
 
 ### AI Trend Primary
@@ -259,11 +260,11 @@ KakaoTalk relay is downstream of Telegram — bare-URL formatting in the brief s
 |---|---|---|---|
 | `anthropic_news` | RSS | **1.6** | anthropic.com/news/rss.xml |
 | `openai_blog` | RSS | 1.5 | openai.com/blog/rss.xml |
-| `meta_ai` | RSS | 1.4 | ai.meta.com/blog/rss/ — FAIR / Llama / SAM |
 | `googleai_blog` | RSS | 1.3 | blog.google/technology/ai/rss/ |
 | `deepmind_blog` | RSS | 1.3 | deepmind.google/blog/rss.xml |
 | `huggingface_blog` | RSS | 1.3 | huggingface.co/blog/feed.xml |
-| `mistral` | RSS | 1.3 | mistral.ai/news/feed.xml |
+| ~~`meta_ai`~~ | RSS | — | **Disabled 2026-05-11.** `ai.meta.com/blog/rss/` returned 404 across all probed paths — Meta retired the feed. Replaced by `meta_llama_stack_releases` (see below). |
+| ~~`mistral`~~ | RSS | — | **Disabled 2026-05-11.** `mistral.ai/news/feed.xml` returned 404 — Mistral retired the feed. Replaced by `mistral_client_python_releases` and `mistral_common_releases` (see below). |
 
 ### Curators & AI Newsletters
 
@@ -297,6 +298,9 @@ GitHub `releases.atom` updates within seconds of a tag push — effectively real
 | `llamacpp_releases` | Atom | 1.6 | ggml-org/llama.cpp |
 | `langchain_releases` | Atom | 1.5 | langchain-ai/langchain |
 | `autogen_releases` | Atom | 1.5 | microsoft/autogen |
+| `meta_llama_stack_releases` | Atom | **1.5** | meta-llama/llama-stack — added 2026-05-11 to replace `meta_ai` RSS |
+| `mistral_client_python_releases` | Atom | **1.5** | mistralai/client-python — added 2026-05-11 to replace `mistral` RSS |
+| `mistral_common_releases` | Atom | **1.4** | mistralai/mistral-common — added 2026-05-11 to replace `mistral` RSS |
 
 ### Korean AI Ecosystem
 
@@ -319,8 +323,8 @@ GitHub `releases.atom` updates within seconds of a tag push — effectively real
 |---|---|---|---|
 | `hn_top` | Hacker News (Algolia, popularity) | 1.2 | tags=story, ai_min_points=120 / general_min_points=150, min_num_comments=20, lookback=30h |
 | `hn_breaking` | Hacker News (Algolia, by date) | **1.4** | New 2026-05-04. `/api/v1/search_by_date`-based 4-hour firehose with a 75-point threshold for AI-keyword matches — catches early momentum before stories trend. |
-| `techmeme` | RSS | 0.7 | techmeme.com/feed.xml (1.0 → 0.7, rumor + politics noise discount) |
-| `producthunt` | RSS | 0.5 | producthunt.com/feed, max_items=15, min_votes=300 |
+| `techmeme` | RSS | 0.7 | techmeme.com/feed.xml (1.0 → 0.7, rumor + politics noise discount). 2026-05-11: aggregator carve-out — feed pubDate no longer presented as `published_at`, so 2-week-old essays re-surfaced by Techmeme stop being mis-tagged as "just published." |
+| ~~`producthunt`~~ | RSS | — | **Disabled 2026-05-11.** Aggregator pubDate ≠ original publish time + low-signal launches. |
 
 `hn_top` captures cumulative-popularity stories (already trending); `hn_breaking` captures early-momentum stories (becoming a story right now). The two channels are orthogonal on the time axis.
 
@@ -508,6 +512,17 @@ Live operation: routine runs four times a day at 10:00 / 14:00 / 18:00 / 22:00 K
 ## Project status
 
 Live operation. The routine runs four times a day at 10:00 / 14:00 / 18:00 / 22:00 KST and broadcasts to the KakaoTalk open chat linked above.
+
+---
+
+## Releases
+
+User-facing change logs for every revision that affects what shows up in the brief:
+
+| Date | Note | Headline |
+|---|---|---|
+| 2026-05-11 | [`releases/2026-05-11.md`](./releases/2026-05-11.md) · [한국어](./releases/2026-05-11.ko.md) | Freshness gates land — old articles stop being tagged as "just published," dead Meta/Mistral RSS replaced with live release atoms, X channels start flowing again |
+| 2026-05-04 | [`releases/2026-05-04.md`](./releases/2026-05-04.md) · [한국어](./releases/2026-05-04.ko.md) | Release-firehose expansion + novelty axis — first-party signal pushed to the top of the brief |
 
 ---
 

@@ -61,7 +61,8 @@
 10. [출력 포맷](#출력-포맷)
 11. [Telemetry & 검증](#telemetry--검증)
 12. [설계 원칙](#설계-원칙)
-13. [Author](#author)
+13. [릴리즈 노트](#릴리즈-노트)
+14. [Author](#author)
 
 ---
 
@@ -226,19 +227,19 @@ KakaoTalk relay는 Telegram의 downstream — 브리프 안 bare URL이 Android 
 
 ## 소스 카탈로그
 
-`sources.yaml`(비공개 운영 레포)에 정의된 **72개 소스 채널 + X 큐레이션 75계정 = 총 147개 발신 경로**를 매 슬롯 동시에 폴링한다. 2026-05-04 개정에서 "최최신 신호"를 강하게 잡기 위해 release.atom firehose와 새 fetcher 모드를 다수 추가했다.
+`sources.yaml`(비공개 운영 레포)에 정의된 **약 70개 소스 채널 + X 큐레이션 83계정 = 약 153개 발신 경로**를 매 슬롯 동시에 폴링한다. 2026-05-04 개정에서 release.atom firehose와 새 fetcher 모드를 추가해 "최최신 신호" 포착을 강화했고, 2026-05-11 개정에서 신선도 게이트를 추가하고 사망한 1차 RSS 두 곳(Meta AI, Mistral) 을 공식 GitHub release atom 으로 갈아끼웠다.
 
 | 카테고리 | 채널 수 | 성격 |
 |---|---:|---|
-| 오픈소스 Release Atom (firehose) | **20** | tag push 즉시 갱신 — 모델·프레임워크·SDK |
-| AI Lab 직속 (블로그·sitemap·watch) | 12 | 1차 발신처 |
+| 오픈소스 Release Atom (firehose) | **23** | tag push 즉시 갱신 — 모델·프레임워크·SDK (2026-05-11에 사망한 Meta·Mistral RSS 자리에 3개 신설) |
+| AI Lab 직속 (블로그·sitemap·watch) | 10 | 1차 발신처 (Meta AI / Mistral RSS는 2026-05-11에 비활성 — 사이트 전반 404) |
 | 큐레이터·뉴스레터 | 10 | 사람이 거른 신호 |
-| X 채널 (그중 1개가 75계정 fan-out) | 9 | follow 리스트 + 단일 계정 |
+| X 채널 (그중 1개가 83계정 fan-out) | 9 | follow 리스트 + 단일 계정 |
 | 모델·페이퍼 플랫폼 (HF, GitHub, arXiv) | 7 | 글로벌 ranking |
 | 포럼·토론·Alignment (HN, Lobsters, LessWrong) | 7 | 커뮤니티 |
 | 소셜 검색 (Bluesky, Mastodon, Dev.to) | 6 | 키워드/해시태그 |
 | 멀티미디어 (YouTube) | 1 | 영상 metadata |
-| **합계** | **72** | + X follow fan-out 75계정 |
+| **합계** | **약 70** | + X follow fan-out 83계정 |
 
 Weight와 파라미터:
 
@@ -260,11 +261,11 @@ Weight와 파라미터:
 |---|---|---|---|
 | `anthropic_news` | RSS | **1.6** | anthropic.com/news/rss.xml |
 | `openai_blog` | RSS | 1.5 | openai.com/blog/rss.xml |
-| `meta_ai` | RSS | 1.4 | ai.meta.com/blog/rss/ — FAIR / Llama / SAM |
 | `googleai_blog` | RSS | 1.3 | blog.google/technology/ai/rss/ |
 | `deepmind_blog` | RSS | 1.3 | deepmind.google/blog/rss.xml |
 | `huggingface_blog` | RSS | 1.3 | huggingface.co/blog/feed.xml |
-| `mistral` | RSS | 1.3 | mistral.ai/news/feed.xml |
+| ~~`meta_ai`~~ | RSS | — | **2026-05-11 비활성.** `ai.meta.com/blog/rss/`는 모든 후보 경로(`/feed.xml`, `?feed=rss2`)에서 404 반환 — Meta가 피드를 내림. 아래 `meta_llama_stack_releases`로 대체. |
+| ~~`mistral`~~ | RSS | — | **2026-05-11 비활성.** `mistral.ai/news/feed.xml`이 404 반환 — Mistral가 피드를 내림. 아래 `mistral_client_python_releases` / `mistral_common_releases`로 대체. |
 
 ### Curators & AI Newsletters
 
@@ -298,6 +299,9 @@ GitHub `releases.atom`은 푸시 직후 갱신되는 사실상 실시간 피드 
 | `llamacpp_releases` | Atom | 1.6 | ggml-org/llama.cpp |
 | `langchain_releases` | Atom | 1.5 | langchain-ai/langchain |
 | `autogen_releases` | Atom | 1.5 | microsoft/autogen |
+| `meta_llama_stack_releases` | Atom | **1.5** | meta-llama/llama-stack — 2026-05-11 신설, 사망한 `meta_ai` RSS 대체 |
+| `mistral_client_python_releases` | Atom | **1.5** | mistralai/client-python — 2026-05-11 신설, 사망한 `mistral` RSS 대체 |
+| `mistral_common_releases` | Atom | **1.4** | mistralai/mistral-common — 2026-05-11 신설, 사망한 `mistral` RSS 대체 |
 
 ### 한국 AI 생태계
 
@@ -320,8 +324,8 @@ GitHub `releases.atom`은 푸시 직후 갱신되는 사실상 실시간 피드 
 |---|---|---|---|
 | `hn_top` | Hacker News (Algolia, popularity) | 1.2 | tags=story, ai_min_points=120 / general_min_points=150, min_num_comments=20, lookback=30h |
 | `hn_breaking` | Hacker News (Algolia, by date) | **1.4** | 2026-05-04 신설. `/api/v1/search_by_date` 기반 4시간 firehose. AI 키워드 매치 시 75pt 임계로 초기 모멘텀 잡음. |
-| `techmeme` | RSS | 0.7 | techmeme.com/feed.xml (rumor·정치 누수로 1.0 → 0.7 강등) |
-| `producthunt` | RSS | 0.5 | producthunt.com/feed, max_items=15, min_votes=300 |
+| `techmeme` | RSS | 0.7 | techmeme.com/feed.xml (rumor·정치 누수로 1.0 → 0.7 강등). 2026-05-11: aggregator carve-out — feed pubDate 를 `published_at` 으로 노출하지 않아 2주 묵은 essay 가 "방금 공개" 로 오인되던 경로 차단. |
+| ~~`producthunt`~~ | RSS | — | **2026-05-11 비활성.** Aggregator pubDate ≠ 원문 발행시점 + 저신호 런칭 비율 높음. |
 
 `hn_top`은 누적 점수(이미 화제), `hn_breaking`은 4시간 안의 초기 모멘텀(곧 화제). 두 채널이 시간 축에서 직교한다.
 
@@ -508,6 +512,17 @@ Phase-09 dry-run 검증 (live credential 없이 측정):
 ## 진행 상태
 
 라이브 운영 중. 매일 KST 10:00 / 14:00 / 18:00 / 22:00에 routine이 실행되어 위 KakaoTalk 오픈채팅으로 송출됩니다.
+
+---
+
+## 릴리즈 노트
+
+브리프에 도착하는 내용을 바꾸는 모든 개정의 사용자 관점 변경사항:
+
+| 날짜 | 노트 | 한 줄 요약 |
+|---|---|---|
+| 2026-05-11 | [`releases/2026-05-11.ko.md`](./releases/2026-05-11.ko.md) · [English](./releases/2026-05-11.md) | 신선도 게이트 정착 — 묵은 글이 "방금 공개"로 오인되던 회귀 종료, 사망한 Meta·Mistral RSS를 라이브 release atom으로 교체, X 채널 신호 복구 |
+| 2026-05-04 | [`releases/2026-05-04.ko.md`](./releases/2026-05-04.ko.md) · [English](./releases/2026-05-04.md) | Release firehose 확장 + novelty axis — 1차 발신 신호가 브리프 상단으로 |
 
 ---
 
