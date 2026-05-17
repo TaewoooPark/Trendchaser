@@ -122,37 +122,23 @@ Lookback windows are tuned to slot spacing so each story enters at most one brie
 
 ## Architecture
 
-```
-                ┌──────────────────────────────────────────────────────────────┐
-                │                    Claude Code Routine (cloud)                │
-                │  triggered by cron at 10:00 / 14:00 / 18:00 / 22:00 KST               │
-                └──────────────────────────────────────────────────────────────┘
-                                          │
-                                          ▼
-   ┌────────────────────────────────────────────────────────────────────────┐
-   │                       12-step curation routine                         │
-   │   driven by prompts/curate.md — Claude executes step-by-step           │
-   └────────────────────────────────────────────────────────────────────────┘
-        │           │             │             │             │
-        ▼           ▼             ▼             ▼             ▼
-   ┌────────┐  ┌─────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐
-   │ fetch_ │→ │ dedupe  │→ │ enrich   │→ │ Claude   │→ │ deliver  │
-   │ all.py │  │ .py     │  │ .py      │  │ scoring  │  │ .py      │
-   │        │  │         │  │          │  │ + write  │  │          │
-   │ 9 fet- │  │ seen    │  │ trafila- │  │ (Step 6– │  │ Telegram │
-   │ chers  │  │ .json   │  │ tura top │  │ 8 of     │  │ + Notion │
-   │ paral- │  │ + within│  │ 30 body  │  │ curate)  │  │          │
-   │ lel    │  │ batch   │  │ extract  │  │          │  │          │
-   └────────┘  └─────────┘  └──────────┘  └──────────┘  └──────────┘
-        │           │             │             │             │
-        ▼           ▼             ▼             ▼             ▼
-   raw items    deduplicated   enriched      brief md     Telegram chat
-                items          items                      → KakaoTalk relay
-                                                          → Notion archive
-                                                          → Obsidian vault
-                                                            (auto-pull
-                                                             claude/brief-stream)
-```
+A Claude Code routine runs the whole pipeline at each slot — server-side, with no machine of the operator's switched on. Six stages, start to finish: fetch, deduplicate, enrich, score, write, deliver.
+
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="./assets/architecture-dark.svg">
+    <img alt="Trendchaser system architecture — about 70 source channels are fetched, deduplicated, enriched, scored, written and delivered into a brief; the brief is persisted to a two-branch Git layout and fanned out to Telegram, Notion and an Obsidian vault, then relayed from Telegram into a public KakaoTalk open chat." src="./assets/architecture.svg" width="100%">
+  </picture>
+</p>
+
+| # | Stage | What it does |
+|--:|---|---|
+| 1 | **Fetch** | ~70 source channels polled in parallel; each source best-effort, failures isolated |
+| 2 | **Deduplicate** | three layers — persistent 14-day state, cross-source within batch, brief-history scan |
+| 3 | **Enrich** | body extraction for the top ~30 candidates; trending sources get a novelty multiplier |
+| 4 | **Score** | 6-axis composite against `profile.md` — signal, affinity, recency, novelty, velocity, freshness |
+| 5 | **Write** | per-slot selection + news-brief prose, with a source-diversity guard |
+| 6 | **Deliver** | Telegram push → KakaoTalk relay; Notion + Obsidian archive |
 
 Two-branch publish strategy: `state/seen.json` lives on `main` (next routine reads latest dedup state); briefs accumulate on `claude/brief-stream` so Obsidian follows that branch.
 
@@ -160,13 +146,13 @@ Two-branch publish strategy: `state/seen.json` lives on `main` (next routine rea
 
 ## Pipeline stages
 
-### 1. Fetch — `scripts/fetch_all.py`
+### 1. Fetch
 
 Parallel collection across 10+ fetcher types (`rss`, `atom`, `arxiv`, `hn`, `youtube`, `hf_papers`, `hf_models` [trending/new mode], `github_trending`, `sitemap`, `gmail_newsletter`, `vercel_x`). Per-source `RateLimiter` (arxiv: 3.0 s, default: 0.2 s). `ThreadPoolExecutor(max_workers=5)`. Each fetcher returns `list[Item]` and may not raise — failures bubble into a `failures[]` array on the orchestrator.
 
 URL canonicalization via `canonicalize_url` (strip UTM/tracking params, lowercase host, normalize trailing slash). Title normalization via NFKD + lowercase + whitespace collapse. Item ID = `sha1(canonical_url)[:40]`.
 
-### 2. Deduplicate — `scripts/dedupe.py`
+### 2. Deduplicate
 
 Three deduplication layers:
 
@@ -174,7 +160,7 @@ Three deduplication layers:
 2. **Cross-source within-batch** — same `id` or `title_norm` across sources keeps only the highest-weighted one.
 3. **Brief-history dedup** — Claude scans the last 14 days of `briefs/*.md` for `title_norm` substring or URL canonical match. ≥ 0.6 Jaccard overlap → freshness penalty −100 (effective drop).
 
-### 3. Enrich — `scripts/enrich.py`
+### 3. Enrich
 
 Pre-rank by `(weight × normalized score) + 0.3 × normalized velocity`, take top 30. Trending sources (`github_trending_*`, `hf_models_trending`) are multiplied by a **novelty factor** to penalize old repos riding short-term hype — `created_at`-based: ≤7d 1.3× / ≤30d 1.0× / ≤90d 0.7× / >90d 0.4×. For each item, fetch and extract body via `trafilatura.fetch_url + extract`, truncate to 1500 chars, store in `body_excerpt`. Fail-open: per-item try/except, failures leave `body_excerpt=""`.
 
@@ -182,9 +168,9 @@ Pre-rank by `(weight × normalized score) + 0.3 × normalized velocity`, take to
 
 `ThreadPoolExecutor(max_workers=8)`. Empirical wall-time ≈ 3 s for top-30.
 
-A **shortlist** stage (`scripts/shortlist.py`) then enforces a hard cap on trending sources: max 2 trending items in the AI section, max 1 in General. This blocks "old trending dominating the brief" structurally, before the brief-writing step.
+A **shortlist** stage then enforces a hard cap on trending sources: max 2 trending items in the AI section, max 1 in General. This blocks "old trending dominating the brief" structurally, before the brief-writing step.
 
-### 4. Score — `prompts/curate.md` Step 6
+### 4. Score
 
 Claude reads `profile.md` (curation profile) and computes a per-item composite. As of 2026-05-04, this is a **6-axis system with a novelty axis added**:
 
@@ -205,7 +191,7 @@ Component definitions:
 
 **Hard cutoffs** (drop regardless of score): `profile.md` `Mute` match · `published_at > 24h` (unless `signal+affinity` average ≥ 80, in which case marked "어제 등장") · prior URL match in 14-day brief window.
 
-### 5. Write — `prompts/curate.md` Step 7–8
+### 5. Write
 
 Claude selects per slot (with source-diversity guard, max 2 items per `source_id` per section):
 - morning: 5 AI + 3 general
@@ -213,7 +199,7 @@ Claude selects per slot (with source-diversity guard, max 2 items per `source_id
 
 Each item is composed as a **2-block structure**: bold one-line headline (8–18 chars, news-headline tone) → blank line → 3–5 sentence prose paragraph closing with `(출처: {source_id} — {bare_url} — {N시간 전})`. Bare URL is mandatory — Telegram→KakaoTalk relay drops hyperlinks but preserves URL strings.
 
-### 6. Deliver — `scripts/deliver.py`
+### 6. Deliver
 
 `md_to_telegram_html` via the placeholder→escape→restore pattern (allowed tags: `b`, `i`, `code`, `a`, `blockquote`). Markdown headings → bold lines, bullets → `• ` prefix. Output is split into ≤ 3800 char chunks (paragraph-first, then line-level, then hard-split).
 
@@ -360,7 +346,7 @@ A small set of personally-curated X follows plus a few official lab accounts is 
 
 ## Scoring formula
 
-Per-item composite score, computed by Claude in Step 6 of `prompts/curate.md`. As of 2026-05-04, **6-axis with novelty added**:
+Per-item composite score, computed by Claude at the scoring stage. As of 2026-05-04, **6-axis with novelty added**:
 
 ```
 total = 0.25·signal       (source_weight × normalized source score)
@@ -400,7 +386,7 @@ arXiv (lagging raw DB)                  50
 
 This axis quantitatively separates "GitHub trending #1, but actually a 2-year-old repo riding a one-day hype" from "nvidia just pushed a release" — roughly trending 1.0× / first-broadcast 1.6×.
 
-**Structural cap** (Step 7 shortlist): trending sources (`github_trending_*`, `hf_models_trending`) are hard-capped at 2 items per AI section / 1 per General section. This is enforced in code before Step 8 (brief authoring), so "old trending dominates the brief" is blocked at the pipeline level.
+**Structural cap** (shortlist stage): trending sources (`github_trending_*`, `hf_models_trending`) are hard-capped at 2 items per AI section / 1 per General section. This is enforced in code before the brief-authoring stage, so "old trending dominates the brief" is blocked at the pipeline level.
 
 Selection thresholds: AI items with score < 60 are dropped or count reduced; general items with score < 50 cause the General section to be omitted entirely. Source-diversity guard: max 2 items per `source_id` per section.
 
@@ -419,7 +405,7 @@ Selection thresholds: AI items with score < 60 are dropped or count reduced; gen
 | Time | **`python-dateutil` ≥ 2.8** | Robust ISO-8601 + RFC-822 parsing across feeds |
 | Config | **`pyyaml` ≥ 6.0** for `sources.yaml` and `profile.md` | Human-editable, push-to-deploy |
 | Delivery | **Telegram Bot API** (HTML mode, sendMessage) + **Notion API** (`notion-client` ≥ 2.2) | Telegram for push, Notion for archive — both free |
-| Brief authoring | **Claude (in routine)** following `prompts/curate.md` Steps 6–8 | LLM does affinity scoring + prose composition; deterministic Python wraps it |
+| Brief authoring | **Claude (in routine)** — affinity scoring + prose composition | LLM does the curation judgement; deterministic Python wraps it |
 | Storage | Two-branch git: `main` for `state/seen.json`, `claude/brief-stream` for `briefs/*.md` + `state/raw/*.json` | Race-safe dedup state + Obsidian-followable archive |
 | KakaoTalk relay | Android-side relay forwarding Telegram messages | No official Kakao open-chat push API exists |
 
@@ -440,7 +426,7 @@ No paid APIs. No OpenAI keys. No vector DB. No external scoring service. The pip
 | YouTube channel ID 404 | Per-channel try/except, other channels in `youtube_ai` continue. |
 | Routine repo race | Routine pulls `--rebase` before push of `state/seen.json`; brief-stream uses ff-only merge from main. |
 | Single bad URL in enrich | Per-item try/except, leaves `body_excerpt=""`, scoring continues. |
-| No env vars (TELEGRAM_*) | `deliver.py` warns and exits 0 (does not crash the routine). |
+| No env vars (TELEGRAM_*) | Delivery warns and exits 0 (does not crash the routine). |
 
 ---
 
@@ -475,7 +461,7 @@ Anthropic이 자체 에이전트 SDK를 정식 공개했다. ...
 *Diagnostics: top_signal=anthropic_news(2.43), oldest_picked=8h ago*
 ```
 
-The outbound message to Telegram has the `## 📌` preview and the diagnostics footer stripped (`strip_outbound_footer`). The brief file and the Notion archive retain everything for history.
+The outbound message to Telegram has the `## 📌` preview and the diagnostics footer stripped. The brief file and the Notion archive retain everything for history.
 
 ---
 
@@ -486,11 +472,11 @@ Phase-09 dry-run validation (no live credentials):
 | Test | Result |
 |---|---|
 | Scenario A — full fetch (morning slot, no env vars) | **201 items, 17 active sources, 0 failures** |
-| Scenario B — fetch_all/dedupe/enrich/deliver chain | each step `exit 0` |
+| Scenario B — fetch/dedupe/enrich/deliver chain | each step `exit 0` |
 | Scenario C — `hf_papers + reddit_ml` disabled | other 16 sources continue, **166 items** |
 | Scenario D — equal score, different velocity | fresh velocity preferred (1.300 vs 1.006) |
 | Top-30 enrichment wall time | ≈ 3 s |
-| `tests/test_delivery.py` | **14/14 pass** (escape, link with underscore, chunk paragraph split, hard split, notion blocks, env-missing exit 0) |
+| delivery self-test suite | **14/14 pass** (escape, link with underscore, chunk paragraph split, hard split, notion blocks, env-missing exit 0) |
 | arxiv body extraction parity (summary == body_excerpt) | 37/37 = **100%** |
 | Telegram self-test (HTML escape, no double-escape, link with underscore URL) | pass |
 

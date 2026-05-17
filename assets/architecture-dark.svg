@@ -1,0 +1,115 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1240 760">
+  <defs>
+    <style>
+      text{font-family:'Pretendard','Pretendard Variable',-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;fill:#e9eaec;}
+      .m{font-family:ui-monospace,'SF Mono',Menlo,Consolas,monospace;}
+      .edge{fill:none;stroke:#d4d5d9;stroke-width:1.1;}
+      .node{fill:#0d0e11;stroke:#e9eaec;stroke-width:1.5;}
+      .fill{fill:#e9eaec;stroke:#e9eaec;stroke-width:1.5;}
+      .cap{font-family:ui-monospace,'SF Mono',Menlo,monospace;fill:#74757d;letter-spacing:.16em;}
+    </style>
+    <marker id="a" markerWidth="9" markerHeight="9" refX="6.4" refY="3" orient="auto">
+      <path d="M0,0 L6.4,3 L0,6 Z" fill="#d4d5d9"/>
+    </marker>
+  </defs>
+
+  <rect width="1240" height="760" fill="#0d0e11"/>
+  <rect x="8" y="8" width="1224" height="744" fill="none" stroke="#d4d5d9" stroke-width="1.5"/>
+
+  <text x="44" y="56" font-size="27" font-weight="800" letter-spacing="0.01em">TRENDCHASER</text>
+  <text x="46" y="75" class="m" font-size="10.5" fill="#9a9ba3" letter-spacing="0.22em">SYSTEM ARCHITECTURE</text>
+  <text x="1196" y="52" text-anchor="end" class="m" font-size="10.5" fill="#9a9ba3" letter-spacing="0.14em">RUNS 4&#215; DAILY</text>
+  <text x="1196" y="69" text-anchor="end" class="m" font-size="10" fill="#74757d">10:00 / 14:00 / 18:00 / 22:00 KST</text>
+  <line x1="40" y1="90" x2="1200" y2="90" stroke="#2b2c32" stroke-width="1"/>
+  <line x1="40" y1="400" x2="1200" y2="400" stroke="#1a1b20" stroke-width="1"/>
+
+  <text x="44" y="126" class="cap" font-size="10">01 &#8212; INGEST &amp; CURATE</text>
+  <text x="44" y="424" class="cap" font-size="10">02 &#8212; PERSIST &amp; DELIVER</text>
+
+  <!-- ===== tier 1 : pipeline ===== -->
+  <path class="edge" d="M150,172 Q235,200 295,244"/>
+  <path class="edge" d="M150,197 Q235,216 295,247"/>
+  <path class="edge" d="M150,222 Q235,236 295,250"/>
+  <path class="edge" d="M150,247 Q235,250 294,251"/>
+  <path class="edge" d="M150,272 Q235,264 294,255"/>
+  <path class="edge" d="M306,247 Q378,210 442,217" marker-end="url(#a)"/>
+  <path class="edge" d="M455,221 Q530,272 598,256" marker-end="url(#a)"/>
+  <path class="edge" d="M611,253 Q686,205 753,215" marker-end="url(#a)"/>
+  <path class="edge" d="M767,216 Q840,268 905,253" marker-end="url(#a)"/>
+  <path class="edge" d="M924,252 Q1000,206 1068,222" marker-end="url(#a)"/>
+  <path class="edge" d="M758,332 Q742,284 759,226" marker-end="url(#a)"/>
+  <!-- the long sweep : deliver -> git -->
+  <path class="edge" style="stroke-width:1.3" d="M1075,229 C1075,320 1010,372 880,378 C560,392 330,408 181,462" marker-end="url(#a)"/>
+
+  <!-- source dots -->
+  <circle class="fill" cx="150" cy="172" r="3.3"/>
+  <circle class="fill" cx="150" cy="197" r="3.3"/>
+  <circle class="fill" cx="150" cy="222" r="3.3"/>
+  <circle class="fill" cx="150" cy="247" r="3.3"/>
+  <circle class="fill" cx="150" cy="272" r="3.3"/>
+  <text x="150" y="306" text-anchor="middle" font-size="13" font-weight="700">&#8776; 70 SOURCES</text>
+  <text x="150" y="323" text-anchor="middle" class="m" font-size="9.5" fill="#74757d">+ 83 X accounts</text>
+
+  <!-- stage nodes -->
+  <circle class="node" cx="300" cy="250" r="6"/>
+  <text x="300" y="231" text-anchor="middle" font-size="13.5"><tspan class="m" fill="#5a5b62">1 </tspan>Fetch</text>
+  <circle class="node" cx="450" cy="215" r="6"/>
+  <text x="450" y="196" text-anchor="middle" font-size="13.5"><tspan class="m" fill="#5a5b62">2 </tspan>Deduplicate</text>
+  <circle class="node" cx="605" cy="258" r="6"/>
+  <text x="605" y="239" text-anchor="middle" font-size="13.5"><tspan class="m" fill="#5a5b62">3 </tspan>Enrich</text>
+  <circle class="node" cx="760" cy="212" r="6"/>
+  <text x="760" y="193" text-anchor="middle" font-size="13.5"><tspan class="m" fill="#5a5b62">4 </tspan>Score</text>
+  <circle class="node" cx="915" cy="256" r="6"/>
+  <text x="915" y="237" text-anchor="middle" font-size="13.5"><tspan class="m" fill="#5a5b62">5 </tspan>Write</text>
+  <circle class="node" cx="1075" cy="220" r="6"/>
+  <text x="1075" y="201" text-anchor="middle" font-size="13.5"><tspan class="m" fill="#5a5b62">6 </tspan>Deliver</text>
+
+  <circle class="node" cx="760" cy="338" r="4.5"/>
+  <text x="760" y="358" text-anchor="middle" class="m" font-size="10" fill="#9a9ba3">profile.md</text>
+
+  <!-- ===== tier 2 : persist + deliver ===== -->
+  <path class="edge" d="M168,476 Q138,516 131,553" marker-end="url(#a)"/>
+  <path class="edge" d="M183,476 Q252,514 304,553" marker-end="url(#a)"/>
+  <path class="edge" d="M317,554 C400,522 488,480 568,457" marker-end="url(#a)"/>
+  <path class="edge" d="M324,560 C420,560 498,560 583,560" marker-end="url(#a)"/>
+  <path class="edge" d="M320,567 C418,600 500,638 583,655" marker-end="url(#a)"/>
+  <path class="edge" d="M582,452 Q690,452 793,452" marker-end="url(#a)"/>
+  <path class="edge" d="M807,452 Q915,452 1018,452" marker-end="url(#a)"/>
+
+  <circle class="node" cx="175" cy="470" r="6"/>
+  <text x="175" y="451" text-anchor="middle" font-size="13" font-weight="700">git</text>
+
+  <circle class="node" cx="130" cy="560" r="5"/>
+  <text x="130" y="582" text-anchor="middle" font-size="11.5">main</text>
+  <text x="130" y="596" text-anchor="middle" class="m" font-size="8" fill="#74757d">state/seen.json</text>
+
+  <circle class="node" cx="310" cy="560" r="6"/>
+  <text x="310" y="582" text-anchor="middle" font-size="11.5">claude/brief-stream</text>
+  <text x="310" y="596" text-anchor="middle" class="m" font-size="8" fill="#74757d">briefs/ accumulate here</text>
+
+  <circle class="node" cx="575" cy="452" r="6"/>
+  <text x="575" y="433" text-anchor="middle" font-size="12.5" font-weight="600">Telegram</text>
+
+  <circle class="node" cx="590" cy="560" r="6"/>
+  <text x="607" y="557" font-size="12.5" font-weight="600">Notion</text>
+  <text x="607" y="572" class="m" font-size="9" fill="#74757d">best-effort archive</text>
+
+  <circle class="node" cx="590" cy="660" r="6"/>
+  <text x="607" y="657" font-size="12.5" font-weight="600">Obsidian</text>
+  <text x="607" y="672" class="m" font-size="9" fill="#74757d">vault follows brief-stream</text>
+
+  <text x="688" y="444" text-anchor="middle" class="m" font-size="8.5" fill="#74757d">Android relay</text>
+  <circle class="node" cx="800" cy="452" r="6"/>
+  <text x="800" y="433" text-anchor="middle" font-size="12.5" font-weight="600">KakaoTalk open chat</text>
+
+  <circle class="fill" cx="1025" cy="452" r="7"/>
+  <text x="1025" y="433" text-anchor="middle" font-size="12.5" font-weight="600">open-chat readers</text>
+
+  <!-- footer / legend -->
+  <line x1="40" y1="706" x2="1200" y2="706" stroke="#2b2c32" stroke-width="1"/>
+  <circle cx="52" cy="726" r="4" fill="#0d0e11" stroke="#e9eaec" stroke-width="1.5"/>
+  <text x="64" y="729" class="m" font-size="9.5" fill="#9a9ba3">pipeline stage</text>
+  <circle cx="196" cy="726" r="4" fill="#e9eaec"/>
+  <text x="208" y="729" class="m" font-size="9.5" fill="#9a9ba3">source / endpoint</text>
+  <text x="1196" y="729" text-anchor="end" class="m" font-size="9.5" fill="#74757d">one brief per slot &#8212; relayed from Telegram into a public KakaoTalk open chat</text>
+</svg>
