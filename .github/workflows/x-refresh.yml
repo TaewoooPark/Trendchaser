@@ -1,0 +1,64 @@
+name: x-refresh
+
+# Background warmer for the prisma-proxy X syndication cache.
+#
+# Lives in the (PUBLIC) Trendchaser repo so the cron runs on the unlimited
+# free Actions minutes that public repos get — sidesteps the private-repo
+# 2,000 min/mo cap that the previous PRISMA-side workflow blew through.
+#
+# Schedule: every 8 minutes during the hour before each KST routine slot
+# (10/14/18/22 KST = 01/05/09/13 UTC). 8 ticks × 4 windows × 7 handles
+# per tick ≈ full coverage of the ~50 active handles right before the
+# brief is built, with zero waste in the off-hours.
+#
+# The actual work runs in the Vercel function (prisma-proxy); this
+# workflow is just a cron-driven HTTP poke. Auth: Bearer ${CRON_SECRET},
+# accepted by prisma-proxy/lib/auth.ts.
+#
+# Required secrets (gh secret set --repo TaewoooPark/Trendchaser):
+#   PRISMA_PROXY_URL          https://prisma-proxy-alpha.vercel.app
+#   CRON_SECRET               same value as the Vercel project's CRON_SECRET env
+#   PRISMA_FOLLOWING_HANDLE   the X handle whose Following list to warm
+
+on:
+  schedule:
+    - cron: '*/8 0,4,8,12 * * *'
+  workflow_dispatch:
+    inputs:
+      batch:
+        description: 'handles per call (max 8)'
+        required: false
+        default: '7'
+
+concurrency:
+  group: x-refresh
+  cancel-in-progress: false
+
+jobs:
+  warm:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Call /api/cron/x_refresh
+        env:
+          PROXY_URL: ${{ secrets.PRISMA_PROXY_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          HANDLE: ${{ secrets.PRISMA_FOLLOWING_HANDLE }}
+          BATCH: ${{ github.event.inputs.batch || '7' }}
+        run: |
+          set -uo pipefail
+          if [ -z "${PROXY_URL:-}" ] || [ -z "${CRON_SECRET:-}" ] || [ -z "${HANDLE:-}" ]; then
+            echo "::error::Missing required secret: PRISMA_PROXY_URL / CRON_SECRET / PRISMA_FOLLOWING_HANDLE"
+            exit 1
+          fi
+          url="${PROXY_URL%/}/api/cron/x_refresh?for=${HANDLE}&batch=${BATCH}"
+          # The proxy function has maxDuration=90s; add buffer for cold starts.
+          status=$(curl -sS -o /tmp/resp.json -w '%{http_code}' \
+            --max-time 110 \
+            -H "Authorization: Bearer ${CRON_SECRET}" \
+            "${url}") || status="0"
+          echo "HTTP ${status}"
+          jq -r '. | "for=\(.for) offset=\(.offset)→\(.next_offset) total=\(.total_handles) batch=\(.batch) elapsed_ms=\(.elapsed_ms)"' /tmp/resp.json 2>/dev/null || cat /tmp/resp.json
+          jq -r '.warmed[]?' /tmp/resp.json 2>/dev/null | sed 's/^/warmed: /' || true
+          jq -r '.errors[]? | "ERR \(.handle): \(.error)"' /tmp/resp.json 2>/dev/null || true
+          if [ "${status}" != "200" ]; then exit 1; fi
