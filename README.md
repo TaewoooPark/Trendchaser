@@ -68,20 +68,20 @@
 
 ## What you receive
 
-Four short news briefs a day, sent straight to your phone. Each item is a tight read — bold headline, three to five sentences of plain context, a source link.
+Four short news briefs a day, sent straight to your phone. Each topic is a compact card: headline, three or four labeled `▸` bullets, and source links. The website archive keeps the expanded `DETAIL` block for deeper context.
 
 ```
-🤖 AI
+<!-- TG-SPLIT -->
 
-Anthropic, 새 모델 SDK 공개
+## [AI] Anthropic, 새 모델 SDK 공개
 
-Anthropic이 자체 에이전트 SDK를 정식 공개했다. 기존 API
-위에서 도구 호출과 메모리를 한 단계 추상화한 것으로, ...
-(출처: anthropic_news — https://anthropic.com/news/... — 2시간 전)
+▸ 무엇: Anthropic이 자체 에이전트 SDK를 정식 공개했다.
+▸ 새 점: 기존 API 위에서 도구 호출과 메모리를 한 단계 추상화했다.
+▸ 의의: agent workflow를 직접 엮던 팀의 glue code를 줄인다.
+▸ 다음 행동: 기존 tool-calling wrapper와 SDK 경계를 비교할 만하다.
 
-🌐 General
-
-...
+🔗 자세히: https://taewoopark.com/trendchaser/...
+🔗 원문: https://anthropic.com/news/...
 ```
 
 You read it like a newspaper. You don't run anything.
@@ -111,36 +111,36 @@ Four slots a day, Korea time.
 
 | Slot | When (KST) | Lookback window | Composition |
 |---|---|---|---|
-| **morning** | 10:00 | last 13h | 5 AI + 3 general |
-| **afternoon** | 14:00 | last 5h | 3 AI + 2 general |
-| **evening** | 18:00 | last 5h | 3 AI + 2 general |
-| **night** | 22:00 | last 5h | 3 AI + 2 general |
+| **morning** | 10:00 | last 13h | up to 6 AI + 4 general |
+| **afternoon** | 14:00 | last 5h | up to 4 AI + 3 general |
+| **evening** | 18:00 | last 5h | up to 4 AI + 3 general |
+| **night** | 22:00 | last 5h | up to 4 AI + 3 general |
 
-Lookback windows are tuned to slot spacing so each story enters at most one brief. Cumulative deduplication across 14 days of brief history kills repeats at source. Source failures are isolated — a 503 on one feed does not block the others.
+Lookback windows are tuned to slot spacing so each story enters at most one brief. The quota is an upper bound, not padding pressure: if the fresh set is thin, the routine ships a shorter brief rather than filling with stale trending. Cumulative deduplication across 14 days of brief history kills repeats at source. Source failures are isolated — a 503 on one feed does not block the others.
 
 ---
 
 ## Architecture
 
-A Claude Code routine runs the whole pipeline at each slot — server-side, with no machine of the operator's switched on. Six stages, start to finish: fetch, deduplicate, enrich, score, write, deliver.
+A Claude Code routine runs the whole pipeline at each slot — server-side, with no machine of the operator's switched on. The current loop has six macro stages plus validation/export/publish gates: fetch, deduplicate, enrich + shortlist, score + editorial review, write + postcheck, publish + deliver.
 
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="./assets/architecture-dark.svg">
-    <img alt="Trendchaser system architecture — about 70 source channels are fetched, deduplicated, enriched, scored, written and delivered into a brief; the brief is persisted to a two-branch Git layout and fanned out to Telegram, Notion and an Obsidian vault, then relayed from Telegram into a public KakaoTalk open chat." src="./assets/architecture.svg" width="100%">
+    <img alt="Trendchaser system architecture - 67 enabled source channels plus the X follow-list fan-out move through fetch, deduplicate, enrich, score, write, validate, publish, and deliver gates; state is persisted across main and claude/brief-stream, then sent to Telegram, KakaoTalk, Obsidian, the graph layer, and optional Notion archive." src="./assets/architecture.svg" width="100%">
   </picture>
 </p>
 
 | # | Stage | What it does |
 |--:|---|---|
-| 1 | **Fetch** | ~70 source channels polled in parallel; each source best-effort, failures isolated |
-| 2 | **Deduplicate** | three layers — persistent 14-day state, cross-source within batch, brief-history scan |
-| 3 | **Enrich** | body extraction for the top ~30 candidates; trending sources get a novelty multiplier |
-| 4 | **Score** | 6-axis composite against `profile.md` — signal, affinity, recency, novelty, velocity, freshness |
-| 5 | **Write** | per-slot selection + news-brief prose, with a source-diversity guard |
-| 6 | **Deliver** | Telegram push → KakaoTalk relay; Notion + Obsidian archive |
+| 1 | **Fetch** | 67 enabled source channels polled in parallel, plus the X following fan-out; each source best-effort, failures isolated |
+| 2 | **Deduplicate** | persistent 14-day state, cross-source batch dedup, brief-stream overlay, stray-branch overlay, semantic brief-history scan |
+| 3 | **Enrich + Shortlist** | body extraction for the top 45 candidates, then a deterministic 3x shortlist with source, aggregator, and trending caps |
+| 4 | **Score + Review** | 6-axis composite against `profile.md`, source-tier gates, stale-trending rules, hallucination/source verification loop |
+| 5 | **Write + Validate** | split topic cards for Telegram, web-only expanded detail blocks, `TC-SCORES`, and postcheck for freshness/time/verification records |
+| 6 | **Publish + Deliver** | `main` state update, ff-only `claude/brief-stream` publish, Obsidian/GraphRAG export, Telegram push → KakaoTalk relay, optional Notion archive |
 
-Two-branch publish strategy: `state/seen.json` lives on `main` (next routine reads latest dedup state); briefs accumulate on `claude/brief-stream` so Obsidian follows that branch.
+Two-branch publish strategy: `state/seen.json` lives on `main` (next routine reads latest dedup state); briefs, raw snapshots, Obsidian notes, graph layers, and `briefs.json` accumulate on `claude/brief-stream` so Obsidian and the website can follow that branch.
 
 ---
 
@@ -148,7 +148,7 @@ Two-branch publish strategy: `state/seen.json` lives on `main` (next routine rea
 
 ### 1. Fetch
 
-Parallel collection across 10+ fetcher types (`rss`, `atom`, `arxiv`, `hn`, `youtube`, `hf_papers`, `hf_models` [trending/new mode], `github_trending`, `sitemap`, `gmail_newsletter`, `vercel_x`). Per-source `RateLimiter` (arxiv: 3.0 s, default: 0.2 s). `ThreadPoolExecutor(max_workers=5)`. Each fetcher returns `list[Item]` and may not raise — failures bubble into a `failures[]` array on the orchestrator.
+Parallel collection across 14 fetcher families (`rss`/Atom, `arxiv`, `hn`, `hn_search`, `youtube`, `hf_papers`, `hf_models` [trending/new mode], `github_trending`, `sitemap`, `hf_posts`, `bluesky_search`, `mastodon`, `vercel_x`, `vercel_watch`). Per-source `RateLimiter` (arxiv: 3.0 s, GitHub API: 1.0 s, default: 0.2 s). `ThreadPoolExecutor(max_workers=5)`. Each fetcher returns `list[Item]` and may not raise — failures bubble into a `failures[]` array on the orchestrator.
 
 URL canonicalization via `canonicalize_url` (strip UTM/tracking params, lowercase host, normalize trailing slash). Title normalization via NFKD + lowercase + whitespace collapse. Item ID = `sha1(canonical_url)[:40]`.
 
@@ -158,21 +158,21 @@ Three deduplication layers:
 
 1. **Persistent dedup** — `state/seen.json` holds every item ID + `title_norm` from the last 14 days. Match on either kills the new item.
 2. **Cross-source within-batch** — same `id` or `title_norm` across sources keeps only the highest-weighted one.
-3. **Brief-history dedup** — Claude scans the last 14 days of `briefs/*.md` for `title_norm` substring or URL canonical match. ≥ 0.6 Jaccard overlap → freshness penalty −100 (effective drop).
+3. **Brief-history dedup** — Step 1 overlays `origin/claude/brief-stream` plus recent stray `claude/*` routine branches, then Claude scans the last 14 days of `briefs/*.md` for URL/title overlap and semantic content-entity matches. URL/title match or ≥ 0.6 Jaccard overlap drops the item; same-event entity overlap (company + product + version/event) also drops it even when the URL differs.
 
 ### 3. Enrich
 
-Pre-rank by `(weight × normalized score) + 0.3 × normalized velocity`, take top 30. Trending sources (`github_trending_*`, `hf_models_trending`) are multiplied by a **novelty factor** to penalize old repos riding short-term hype — `created_at`-based: ≤7d 1.3× / ≤30d 1.0× / ≤90d 0.7× / >90d 0.4×. For each item, fetch and extract body via `trafilatura.fetch_url + extract`, truncate to 1500 chars, store in `body_excerpt`. Fail-open: per-item try/except, failures leave `body_excerpt=""`.
+Pre-rank by `(effective source weight × normalized score) + 0.3 × normalized velocity`, take the top 45. Trending sources (`github_trending_*`, `hf_models_trending`) are multiplied by a **novelty factor** to penalize old repos riding short-term hype — `created_at`-based: ≤7d 1.3× / ≤30d 1.0× / ≤90d 0.7× / >90d 0.4×. For each item, fetch and extract body via `trafilatura.fetch_url + extract`, truncate to 1500 chars, store in `body_excerpt`. Fail-open: per-item try/except, failures leave `body_excerpt=""`.
 
 `SKIP_TRAFILATURA_SOURCES = {arxiv_ai, youtube_ai, hf_papers, hf_models_trending, hf_models_new, github_trending_*}` — for these sources the upstream summary is more accurate than DOM extraction.
 
-`ThreadPoolExecutor(max_workers=8)`. Empirical wall-time ≈ 3 s for top-30.
+`ThreadPoolExecutor(max_workers=8)`. The 45-item cap exists because the later hallucination verification loop may drop a selected item and promote a replacement, so replacement candidates need body context too.
 
-A **shortlist** stage then enforces a hard cap on trending sources: max 2 trending items in the AI section, max 1 in General. This blocks "old trending dominating the brief" structurally, before the brief-writing step.
+A **shortlist** stage then emits a 3x pool: morning AI 18 / general 12, other slots AI 12 / general 9. Deterministic rules force at least one Tier-S AI source when present, separately protect major repo releases, prefer General dev-primary sources over weak aggregators, and cap aggregators / Tier-D / trending feeds before the brief-writing step.
 
 ### 4. Score
 
-Claude reads `profile.md` (curation profile) and computes a per-item composite. As of 2026-05-04, this is a **6-axis system with a novelty axis added**:
+Claude reads `profile.md` (curation profile) and computes a per-item composite. The current system is still a **6-axis score**, but the surrounding gates have become stricter since the 2026-05-11 loop update:
 
 ```
 score = 0.25·signal + 0.25·affinity + 0.20·recency + 0.20·novelty + 0.05·velocity + 0.05·freshness
@@ -181,51 +181,56 @@ score = 0.25·signal + 0.25·affinity + 0.20·recency + 0.20·novelty + 0.05·ve
 Component definitions:
 - **signal** — `source_weight × normalized(source_score)`. Sources without numeric score use weight only (0.6 baseline).
 - **affinity** — semantic match between item title + body excerpt and `profile.md` Priorities / AI Keywords / Boost.
-- **recency** — hour-resolution decay: ≤3h → 100, ≤6h → 85, ≤12h → 65, ≤24h → 40, >24h → 15.
+- **recency** — hour-resolution decay: ≤3h → 100, ≤6h → 85, ≤12h → 65, ≤24h → 40, >24h → 15. For resurfacing feeds, recency uses `signal_at` for curated feeds and artifact age for trending feeds.
 - **novelty** — "is this a true first-broadcast signal, or trending piggyback?" Distinguishes primary publishers from re-discovery feeds.
   - First-party broadcast (lab blog / release.atom / papers / firehose) → 100
   - Curators / aggregators → 65
   - Trending (existing artifacts re-surfacing) → `created_at`-graded (≤7d 80 / ≤30d 50 / ≤90d 25 / >90d 0)
 - **velocity** — normalized item velocity (HN/HF score gain over time); 0.5 baseline if absent.
-- **freshness** — penalty for items overlapping the last 14 days of briefs.
+- **freshness** — default 100; any 14-day URL/title/entity overlap is intended to drop the item before final selection.
 
-**Hard cutoffs** (drop regardless of score): `profile.md` `Mute` match · `published_at > 24h` (unless `signal+affinity` average ≥ 80, in which case marked "어제 등장") · prior URL match in 14-day brief window.
+**Hard cutoffs** (drop regardless of score): `profile.md` `Mute` match · `published_at > 24h` (for resurfacing feeds, `signal_at > 24h`) · prior URL/title/entity match in the 14-day brief window · topic relevance gate for non-dev politics/lifestyle/non-IT industry drift. The old broad evergreen exception is gone; only Tier-S first-party items may relax to ≤72h when the slot would otherwise fall below the minimum topic floor.
 
 ### 5. Write
 
-Claude selects per slot (with source-diversity guard, max 2 items per `source_id` per section):
-- morning: 5 AI + 3 general
-- afternoon, evening: 3 AI + 2 general
+Claude selects per slot from the 3x pool:
+- morning: up to 6 AI + 4 general
+- afternoon, evening, night: up to 4 AI + 3 general
+- all slots: minimum 3 topics if qualifying candidates exist; never pad with stale items just to fill quota
 
-Each item is composed as a **2-block structure**: bold one-line headline (8–18 chars, news-headline tone) → blank line → 3–5 sentence prose paragraph closing with `(출처: {source_id} — {bare_url} — {N시간 전})`. Bare URL is mandatory — Telegram→KakaoTalk relay drops hyperlinks but preserves URL strings.
+Before writing, Step 8.5 runs a **hallucination/source verification loop**. Load-bearing claims — affiliations, acronym expansions, numbers, model/repo identifiers, direct quotes — must be checked against the original URL when possible. If a claim fails, Claude strips/rephrases it or drops the item and promotes a replacement from the shortlist.
+
+Each topic is composed as a Telegram card plus website detail: `## [AI]` / `## [General]` / optional `## [Watch]` heading, 3-4 `▸` bullets for the push message, `<!-- DETAIL -->` followed by 3-4 paragraphs of expanded context for the website, then `(출처: {source_id} — {bare_url} — {time})`. `<!-- TG-SPLIT -->` markers make each topic its own Telegram message. A footer records diagnostics plus `<!-- TC-SCORES {...} -->` for the website score meter.
 
 ### 6. Deliver
 
-`md_to_telegram_html` via the placeholder→escape→restore pattern (allowed tags: `b`, `i`, `code`, `a`, `blockquote`). Markdown headings → bold lines, bullets → `• ` prefix. Output is split into ≤ 3800 char chunks (paragraph-first, then line-level, then hard-split).
+`md_to_telegram_html` via the placeholder→escape→restore pattern (allowed tags: `b`, `i`, `code`, `a`, `blockquote`). Markdown headings → bold lines, bullets → `• ` prefix. `split_brief_into_messages` first honors `<!-- TG-SPLIT -->`, then length-splits any oversized segment to ≤ 3800 chars.
 
-`strip_outbound_footer` removes `## 📌 다음 슬롯…` preview, `---`, `*Failed sources*`, `*Diagnostics*` from the outbound message — the brief file and Notion archive retain these for history.
+For topic segments, the Telegram card keeps the bullets and rewrites `(출처: ...)` into two links: `자세히` deep-linking to `taewoopark.com/trendchaser`, and `원문` pointing at the collected source URL. The `<!-- DETAIL -->` expanded context and footer are kept in the brief file / website archive but stripped from Telegram.
 
 Optional Notion archive: `notion_blocks.markdown_to_notion_blocks` converts to `heading_1..3`, `bulleted_list_item`, `numbered_list_item`, `quote`, `paragraph` (1900-char split), with inline `link/bold/italic/code` rich_text. Page properties: Title, Date, Slot, Sources (multi_select).
 
-KakaoTalk relay is downstream of Telegram — bare-URL formatting in the brief survives the clipboard hop on Android.
+KakaoTalk relay is downstream of Telegram. The brief is also published to `claude/brief-stream` with Obsidian notes, graph clusters, typed relations, and `briefs.json`; `verify_main_brief.py` checks that both the canonical brief and its Obsidian export landed on the remote branch.
 
 ---
 
 ## Source catalog
 
-**~70 source channels + 83 X-curated accounts = ~153 emission paths** polled every slot, defined in the private operational repo's `sources.yaml`. The 2026-05-04 revision strengthened "freshest signal" capture via release.atom firehoses and new fetcher modes; the 2026-05-11 revision added freshness gates and replaced two dead first-party RSS sources (Meta AI, Mistral) with their official GitHub release atoms.
+As of the latest PRISMA loop, `sources.yaml` has **67 enabled source channels** plus the `x_my_following` fan-out. The follow-list fan-out currently tracks 83 X accounts, so the practical emission surface is about **150 paths**. Disabled paths remain documented in config but are not counted here: retired Meta/Mistral RSS feeds, Product Hunt, Gmail newsletters, dead Upstage/LG RSS feeds, and most single-handle X feeds.
 
 | Category | Count | Role |
 |---|---:|---|
-| Open-source release atoms (firehose) | **23** | tag push instant — models, frameworks, SDKs (3 added 2026-05-11 to replace dead Meta / Mistral RSS) |
-| AI lab direct (blog · sitemap · watch) | 10 | first-party emission (Meta AI / Mistral RSS removed 2026-05-11 — both returned 404 site-wide) |
-| Curators & newsletters | 10 | human-filtered signal |
-| X channels (one fans out to 83 accounts) | 9 | follow list + single-handle feeds |
-| Model/paper platforms (HF, GitHub, arXiv) | 7 | global ranking |
-| Forums & alignment (HN, Lobsters, LessWrong) | 7 | community |
+| Open-source release atoms (firehose) | **23** | tag push instant — models, frameworks, SDKs |
+| AI lab direct + watch | 8 | first-party blogs/sitemap plus Vercel watch probes |
+| Curators & longform | 7 | human-filtered signal and SWE/AI essays |
+| X via Vercel proxy | 6 | one follow-list fan-out + five single-handle feeds |
+| Model/paper/ranking platforms | 6 | HF Papers/Models, GitHub Trending, arXiv |
+| Forums & communities | 7 | HN top/breaking/search, Lobsters, HF posts, LessWrong, Alignment Forum |
 | Social keyword search (Bluesky, Mastodon, Dev.to) | 6 | hashtag/keyword |
-| Multimedia (YouTube) | 1 | video metadata |
-| **Total** | **~70** | + 83 X follow fan-out |
+| Korean dev blogs | 2 | Naver D2, Kakao Tech |
+| Tech aggregator | 1 | Techmeme |
+| Multimedia | 1 | YouTube metadata |
+| **Total enabled** | **67** | + 83 X follow fan-out |
 
 
 ### AI Trend Primary
@@ -233,22 +238,25 @@ KakaoTalk relay is downstream of Telegram — bare-URL formatting in the brief s
 | ID | Type | Weight | Parameters |
 |---|---|---|---|
 | `hf_papers` | HuggingFace Daily Papers | **1.7** | 2-day lookback, min_upvotes=15 |
-| `hf_models_new` | HuggingFace Models (firehose) | **1.5** | New 2026-05-04. Iterates each foundation lab via author filter, sorts `createdAt desc`, top N per author, 7-day window. min_likes/downloads=0. |
-| `github_trending_python` | GitHub Trending | 1.4 | language=python, since=daily, top 25 |
-| `github_trending_overall` | GitHub Trending | 1.3 | all languages, since=daily, top 15 |
-| `hf_models_trending` | HuggingFace Models | 0.9 | Demoted 2026-05-04 (1.3 → 0.9). Cumulative-popularity signal, weak on freshness. `hf_models_new` shares the load. |
+| `hf_models_new` | HuggingFace Models (firehose) | **1.5** | Foundation-lab author filter, `createdAt desc`, 5 per author, 7-day window. min_likes/downloads=0. |
+| `github_trending_python` | GitHub Trending | 1.4 | language=python, since=daily, top 25, min_stars_today=30; evening/night 1.3x slot multiplier |
+| `github_trending_overall` | GitHub Trending | 1.3 | all languages, since=daily, top 15, min_stars_today=100; evening/night 1.3x slot multiplier |
+| `hf_models_trending` | HuggingFace Models | 0.9 | Cumulative-popularity signal; old-model freshness handled by detail fetch + novelty caps |
 
-**Foundation lab whitelist**: 31 orgs added 2026-05-04 — Western (CohereForAI, BlackForestLabs, NousResearch, apple, RekaAI, ai21labs, tiiuae, EleutherAI, bigscience, bigcode, Salesforce, ServiceNow, HuggingFaceH4/TB, Nexusflow), Chinese (moonshotai, Skywork, ZhipuAI, IEITYuan, StepFun-AI, 01-ai, THUDM, OpenBMB, internlm, baichuan-inc, Tencent, Alibaba-NLP, ByteDance), Korean (naver-hyperclovax, kakaocorp). Non-Western labs receive a 1.15× score boost.
+**Foundation lab whitelist**: Western, Chinese, and Korean lab orgs are hard-filtered for `hf_models_new`; authority-listed labs get lower thresholds in `hf_models_trending`.
 
 ### AI Lab Direct
 
 | ID | Type | Weight | Feed |
 |---|---|---|---|
-| `anthropic_news` | RSS | **1.6** | anthropic.com/news/rss.xml |
+| `anthropic_news` | Sitemap | **1.6** | anthropic.com/news via sitemap; morning 1.3x slot multiplier |
 | `openai_blog` | RSS | 1.5 | openai.com/blog/rss.xml |
 | `googleai_blog` | RSS | 1.3 | blog.google/technology/ai/rss/ |
 | `deepmind_blog` | RSS | 1.3 | deepmind.google/blog/rss.xml |
 | `huggingface_blog` | RSS | 1.3 | huggingface.co/blog/feed.xml |
+| `watch_qwen_blog` | Vercel watch | 1.0 | qwen-blog changedetection alternative; afternoon 1.3x slot multiplier |
+| `watch_upstage_blog` | Vercel watch | 1.0 | Upstage blog change probe |
+| `watch_lg_research` | Vercel watch | 1.0 | LG AI Research change probe |
 | ~~`meta_ai`~~ | RSS | — | **Disabled 2026-05-11.** `ai.meta.com/blog/rss/` returned 404 across all probed paths — Meta retired the feed. Replaced by `meta_llama_stack_releases` (see below). |
 | ~~`mistral`~~ | RSS | — | **Disabled 2026-05-11.** `mistral.ai/news/feed.xml` returned 404 — Mistral retired the feed. Replaced by `mistral_client_python_releases` and `mistral_common_releases` (see below). |
 
@@ -264,12 +272,16 @@ KakaoTalk relay is downstream of Telegram — bare-URL formatting in the brief s
 
 ### Open Source Releases (Atom firehose)
 
-GitHub `releases.atom` updates within seconds of a tag push — effectively real-time and the earliest first-party broadcast surface for software releases. The 2026-05-04 revision adds 14 LLM-infra / agent-framework / MCP SDK feeds in one batch.
+GitHub `releases.atom` updates within seconds of a tag push — effectively real-time and the earliest first-party broadcast surface for software releases. Major AI dev-tool releases get a second forced slot in the shortlist so they are not crowded out by a high-scoring lab blog.
 
 | ID | Type | Weight | Feed |
 |---|---|---|---|
-| `claude_code_releases` | Atom | **1.5** | anthropics/claude-code |
-| `mcp_releases` | Atom | 1.3 | modelcontextprotocol/specification |
+| `claude_code_releases` | Atom | **1.7** | anthropics/claude-code |
+| `openai_codex_releases` | Atom | **1.7** | openai/codex |
+| `aider_releases` | Atom | 1.6 | Aider-AI/aider |
+| `continue_releases` | Atom | 1.5 | continuedev/continue |
+| `anthropic_sdk_releases` | Atom | 1.5 | anthropics/anthropic-sdk-python |
+| `mcp_releases` | Atom | 1.5 | modelcontextprotocol/specification |
 | `mcp_python_sdk_releases` | Atom | 1.6 | modelcontextprotocol/python-sdk |
 | `mcp_typescript_sdk_releases` | Atom | 1.6 | modelcontextprotocol/typescript-sdk |
 | `openai_python_releases` | Atom | 1.6 | openai/openai-python |
@@ -292,40 +304,51 @@ GitHub `releases.atom` updates within seconds of a tag push — effectively real
 
 | ID | Type | Weight | Feed |
 |---|---|---|---|
-| `upstage_blog` | RSS | 1.2 | upstage.ai/blog/rss.xml — Solar model, document AI |
-| `lg_ai_research` | RSS | 1.1 | lgresearch.ai/blog/rss.xml — EXAONE |
-| `naver_d2` | Atom | 1.0 | d2.naver.com/d2.atom — CLOVA / HyperCLOVA |
+| ~~`upstage_blog`~~ | RSS | — | Disabled after RSS probes 404; `watch_upstage_blog` and HF org signals cover it |
+| ~~`lg_ai_research`~~ | RSS | — | Disabled after RSS probes 404; `watch_lg_research` and HF org signals cover it |
+| `naver_d2` | Atom | 1.0 | d2.naver.com/d2.atom — CLOVA / HyperCLOVA; afternoon 1.3x |
 | `kakao_tech` | RSS | 1.0 | tech.kakao.com/feed/ — Kakao Brain |
 
 ### Raw Database
 
 | ID | Type | Weight | Parameters |
 |---|---|---|---|
-| `arxiv_ai` | arXiv API | 0.8 | categories=cs.AI/cs.LG/cs.CL/stat.ML, max_results=40, sort=submittedDate desc, rate_limit=3.0s |
+| `arxiv_ai` | arXiv API | 0.8 | categories=cs.AI/cs.LG/cs.CL/stat.ML, max_results=20, sort=submittedDate desc, rate_limit=3.0s |
 
 ### Aggregators
 
 | ID | Type | Weight | Parameters |
 |---|---|---|---|
 | `hn_top` | Hacker News (Algolia, popularity) | 1.2 | tags=story, ai_min_points=120 / general_min_points=150, min_num_comments=20, lookback=30h |
-| `hn_breaking` | Hacker News (Algolia, by date) | **1.4** | New 2026-05-04. `/api/v1/search_by_date`-based 4-hour firehose with a 75-point threshold for AI-keyword matches — catches early momentum before stories trend. |
+| `hn_breaking` | Hacker News (Algolia, by date) | **1.4** | `/api/v1/search_by_date` firehose, 6h lookback, 75-point threshold for AI-keyword matches — catches early momentum before stories trend. |
 | `techmeme` | RSS | 0.7 | techmeme.com/feed.xml (1.0 → 0.7, rumor + politics noise discount). 2026-05-11: aggregator carve-out — feed pubDate no longer presented as `published_at`, so 2-week-old essays re-surfaced by Techmeme stop being mis-tagged as "just published." |
 | ~~`producthunt`~~ | RSS | — | **Disabled 2026-05-11.** Aggregator pubDate ≠ original publish time + low-signal launches. |
 
 `hn_top` captures cumulative-popularity stories (already trending); `hn_breaking` captures early-momentum stories (becoming a story right now). The two channels are orthogonal on the time axis.
 
+### Immediate Integration + Social
+
+| ID | Type | Weight | Parameters |
+|---|---|---|---|
+| `hn_ai_filter` | HN Search | 1.3 | AI/dev keyword search, 12h lookback, min_points=30 |
+| `lobsters_ai` | RSS | 1.2 | lobste.rs `ai,vibecoding`, 24h lookback |
+| `hf_posts` | HF posts | 1.2 | 24h lookback, min_comments=5 |
+| `devto_ai` / `devto_llm` / `devto_ml` | RSS | 0.5 | low-weight keyword feeds, max 8 items each |
+| `bluesky_keyword_ai` | Bluesky Search | 1.1 | AI keyword discovery, 12h lookback |
+| `mastodon_hashtag_aiml` / `mastodon_hashtag_fosstodon` | Mastodon | 0.9 / 0.7 | hashtag mode; favorite/reblog thresholds |
+
 ### X curation (limited)
 
-A small set of personally-curated X follows plus a few official lab accounts is read on a 12-hour lookback per slot. The official X API is **not** used — instead, a small self-hosted relay returns raw text only. This is a slot-by-slot snapshot rather than a live firehose, but it covers cases where lab announcements hit X before the company blog. Curation is delegated to the user's own follow list — channel rotation needs no code change.
+Six `vercel_x` channels are enabled: `x_my_following`, `x_sama`, `x_karpathy`, `x_alibaba_qwen`, `x_deepseek_ai`, and `x_kimi_moonshot`. The official X API is **not** used — instead, a small self-hosted Vercel relay returns raw text only. `x_my_following` is the main surface: it mirrors the operator's own X following list, currently 83 accounts, with a 24h lookback so the cron warmer's lag does not drop fresh posts. Channel rotation needs no code change.
 
 ### Longform & Essays
 
 | ID | Type | Weight | Feed |
 |---|---|---|---|
 | `oneusefulthing` | RSS | 1.3 | oneusefulthing.org/feed — Ethan Mollick, applied AI essays |
-| `pragmaticengineer` | RSS | 1.2 | newsletter.pragmaticengineer.com/feed — Gergely Orosz, software engineering longform |
-| `thebrowser` | Gmail Newsletter | 1.4 | label=Newsletter, from=caroline@thebrowser.com |
-| `notboring` | Gmail Newsletter | 1.2 | label=Newsletter, from=packy@notboring.co |
+| `pragmaticengineer` | RSS | 1.4 | newsletter.pragmaticengineer.com/feed — Gergely Orosz, software engineering longform |
+| ~~`thebrowser`~~ | Gmail Newsletter | — | Disabled until the Routine Gmail connector is configured |
+| ~~`notboring`~~ | Gmail Newsletter | — | Disabled until the Routine Gmail connector is configured |
 
 ### Meta-Source
 
@@ -338,15 +361,15 @@ A small set of personally-curated X follows plus a few official lab accounts is 
 
 | ID | Type | Weight | Channels |
 |---|---|---|---|
-| `youtube_ai` | YouTube RSS | 0.9 | Yannic Kilcher · Andrej Karpathy · Two Minute Papers · Latent Space · Dwarkesh Patel · Lex Fridman (4 items per channel, 48h lookback) |
+| `youtube_ai` | YouTube RSS | 0.9 | Anthropic · OpenAI · Google DeepMind · Hugging Face · Yannic Kilcher · Andrej Karpathy (4 items per channel, 48h lookback) |
 
-**AI classification rule** — items from `{hf_papers, hf_models_trending, arxiv_ai, anthropic_news, openai_blog, googleai_blog, deepmind_blog, huggingface_blog, meta_ai, mistral, simonwillison, latent_space, interconnects, smol_ai, import_ai, alignment_forum, github_trending_python, github_trending_overall, oneusefulthing, claude_code_releases, mcp_releases, upstage_blog, lg_ai_research}` are AI by definition. Items from other sources are AI if title + body excerpt match `profile.md` AI Keywords; else general.
+**AI classification rule** — source IDs in `AI_SOURCES` are AI by definition: HF papers/models, arXiv, lab blogs/watch paths, major release atoms, AI curators, alignment sources, GitHub Trending, and selected Korean AI signals. Other sources become AI only if title + body excerpt strongly match `profile.md` AI Keywords; otherwise they go through the General dev-domain gate.
 
 ---
 
 ## Scoring formula
 
-Per-item composite score, computed by Claude at the scoring stage. As of 2026-05-04, **6-axis with novelty added**:
+Per-item composite score, computed by Claude at the scoring stage. The core score is a **6-axis composite**:
 
 ```
 total = 0.25·signal       (source_weight × normalized source score)
@@ -358,6 +381,8 @@ total = 0.25·signal       (source_weight × normalized source score)
 ```
 
 Recency step function:
+
+For resurfacing feeds, `published_at` is not always the true story time. Curated feeds (`hf_papers`, `hn_top`, `techmeme`, `lobsters_ai`) use `signal_at` for the 24h cutoff; trending feeds (`github_trending_*`, `hf_models_trending`) use artifact age for recency scoring so an old repo that trends today does not read like a new launch.
 
 ```
 hours since publish    score
@@ -386,9 +411,9 @@ arXiv (lagging raw DB)                  50
 
 This axis quantitatively separates "GitHub trending #1, but actually a 2-year-old repo riding a one-day hype" from "nvidia just pushed a release" — roughly trending 1.0× / first-broadcast 1.6×.
 
-**Structural cap** (shortlist stage): trending sources (`github_trending_*`, `hf_models_trending`) are hard-capped at 2 items per AI section / 1 per General section. This is enforced in code before the brief-authoring stage, so "old trending dominates the brief" is blocked at the pipeline level.
+**Structural caps** (shortlist stage): the 3x pool caps aggregators, Tier-D sources, source repetition, and trending feeds. Trending sources (`github_trending_*`, `hf_models_trending`) are capped at 3 in the AI pool and 2 in the General pool; final editorial review then prevents >7d stale-trending items from taking primary slots while fresher candidates remain.
 
-Selection thresholds: AI items with score < 60 are dropped or count reduced; general items with score < 50 cause the General section to be omitted entirely. Source-diversity guard: max 2 items per `source_id` per section.
+Selection thresholds: AI items below 60 and General items below 50 are normally dropped. If the whole slot would fall below 3 topics, the routine relaxes in order: AI 55→50→45, Tier-S first-party items up to 72h, Watch promotion, then General down to 40 if it passes the dev-domain gate. If that still cannot reach 3 topics, the brief ships short and records the reason in diagnostics.
 
 ---
 
@@ -404,9 +429,10 @@ Selection thresholds: AI items with score < 60 are dropped or count reduced; gen
 | HTTP | **`requests` ≥ 2.31** with 20s timeout default | Per-call timeout, structured error handling |
 | Time | **`python-dateutil` ≥ 2.8** | Robust ISO-8601 + RFC-822 parsing across feeds |
 | Config | **`pyyaml` ≥ 6.0** for `sources.yaml` and `profile.md` | Human-editable, push-to-deploy |
-| Delivery | **Telegram Bot API** (HTML mode, sendMessage) + **Notion API** (`notion-client` ≥ 2.2) | Telegram for push, Notion for archive — both free |
+| Delivery | **Telegram Bot API** (HTML mode, sendMessage) + **Notion API** (`notion-client` ≥ 2.2) | Telegram for push, Notion for optional archive — both free |
 | Brief authoring | **Claude (in routine)** — affinity scoring + prose composition | LLM does the curation judgement; deterministic Python wraps it |
-| Storage | Two-branch git: `main` for `state/seen.json`, `claude/brief-stream` for `briefs/*.md` + `state/raw/*.json` | Race-safe dedup state + Obsidian-followable archive |
+| Storage | Two-branch git: `main` for `state/seen.json`, `claude/brief-stream` for `briefs/*.md`, `state/raw/*.json`, Obsidian notes, graph clusters, `briefs.json` | Race-safe dedup state + website/Obsidian-followable archive |
+| Graph layer | deterministic Obsidian export + relation/cluster builders | No embeddings or paid vector DB; graph notes are regenerated from brief artifacts |
 | KakaoTalk relay | Android-side relay forwarding Telegram messages | No official Kakao open-chat push API exists |
 
 No paid APIs. No OpenAI keys. No vector DB. No external scoring service. The pipeline is intentionally cheap and small.
@@ -420,11 +446,14 @@ No paid APIs. No OpenAI keys. No vector DB. No external scoring service. The pip
 | Source 5xx / timeout | Fetcher returns `[]` + warning log. Orchestrator records `failures[source_id]`. Other sources continue. |
 | arXiv rate limit (3s/req) | Per-source `RateLimiter` enforces inter-request delay. |
 | HuggingFace API schema change | `hf_papers` URL normalization to canonical `arxiv.org/abs/...` so cross-source dedup with `arxiv_ai` still works. |
-| Telegram chunk send failure | Per-chunk try/except + 1 retry with backoff. Failed chunk does not block subsequent chunks. |
+| Hallucinated claim risk | Step 8.5 fetches original URLs for load-bearing claims; unverifiable claims are stripped, rephrased, or cause item replacement. |
+| Stale topic leakage | `postcheck.py` rejects missing time signals and slot-window violations; Claude rewrites, replaces, or drops the topic before publish. |
+| Telegram chunk send failure | Per-message try/except + 1 retry with backoff. Failed message does not block subsequent messages. |
 | Notion API 5xx | Logged, brief is still delivered to Telegram. Notion archive is best-effort. |
-| Gmail credentials missing | `gmail_newsletter` fetcher returns `[]` + info log. |
+| Gmail connector missing | Gmail newsletter sources are disabled in config; if re-enabled without connector auth, status is summarized as `gmail_status=disabled` rather than noisy per-slot failures. |
 | YouTube channel ID 404 | Per-channel try/except, other channels in `youtube_ai` continue. |
-| Routine repo race | Routine pulls `--rebase` before push of `state/seen.json`; brief-stream uses ff-only merge from main. |
+| Routine repo race | `state/seen.json` pushes to `main`; `push_brief_stream.sh` builds a temp index on `origin/claude/brief-stream` and fast-forward pushes, retrying on concurrent updates. |
+| Silent branch publish failure | `verify_main_brief.py` fetches the remote branch and confirms both `briefs/$DATE-$SLOT.md` and `obsidian/briefs/brief-$DATE-$SLOT.md` exist; missing files trigger a Telegram alert. |
 | Single bad URL in enrich | Per-item try/except, leaves `body_excerpt=""`, scoring continues. |
 | No env vars (TELEGRAM_*) | Delivery warns and exits 0 (does not crash the routine). |
 
@@ -437,56 +466,61 @@ Brief markdown structure (slot file at `briefs/$DATE-$SLOT.md`):
 ```markdown
 # Trendchaser: 4월 30일 10시 기준 최신 AI/Dev 소식
 
-> 생성 2026-04-30 10:02 KST · 직전 슬롯 이후 13시간 스캔 · raw 201 → dedup 190 → 선정 8
+<!-- TG-SPLIT -->
 
-## 🤖 AI
+## [AI] 🚀 모델 SDK 공개
 
-**Anthropic, 새 모델 SDK 공개**
+▸ 무엇: Anthropic이 새 모델 SDK를 공개.
+▸ 새 점: 도구 호출과 메모리 관리를 한 단계 추상화.
+▸ 의의: agent framework와 기존 API 사이의 간극을 줄임.
 
-Anthropic이 자체 에이전트 SDK를 정식 공개했다. ...
+<!-- DETAIL -->
+
+웹사이트에만 실리는 확장 해설 3-4문단. 배경, 핵심 내용, 작동 방식,
+의의와 한계를 bullet 카드보다 길게 설명한다.
+
 (출처: anthropic_news — https://www.anthropic.com/news/agent-sdk — 2시간 전)
 
-(2–4 more items, blank line between each)
+<!-- TG-SPLIT -->
 
-## 🌐 General
+## [General] 런타임 릴리스
 
-(1–2 items, same format)
+▸ 무엇: ...
 
-## 📌 다음 슬롯에서 확인할 것
+<!-- TG-SPLIT -->
 
-(50–60점대 대기 항목 한 단락, 또는 섹션 생략)
+> 생성 2026-04-30 10:02 KST · 직전 슬롯 이후 13시간 스캔 · raw 201 → dedup 190 → 선정 7
 
 ---
 *Failed sources: 없음*
-*Diagnostics: top_signal=anthropic_news(2.43), oldest_picked=8h ago*
+*Diagnostics: top_signal=anthropic_news(2.43), oldest_picked=8h ago · hallu_fetched=8, hallu_fetch_failed=0*
+<!-- TC-SCORES {"1":{"signal":90,"affinity":85,"recency":100,"novelty":100,"velocity":50,"freshness":100}} -->
 ```
 
-The outbound message to Telegram has the `## 📌` preview and the diagnostics footer stripped. The brief file and the Notion archive retain everything for history.
+Telegram receives one message per `<!-- TG-SPLIT -->` topic segment. The `<!-- DETAIL -->` section, diagnostics footer, and `TC-SCORES` comment are stripped from Telegram but remain in the brief file and website archive.
 
 ---
 
 ## Telemetry & validation
 
-Phase-09 dry-run validation (no live credentials):
+Current routine validation gates:
 
 | Test | Result |
 |---|---|
-| Scenario A — full fetch (morning slot, no env vars) | **201 items, 17 active sources, 0 failures** |
-| Scenario B — fetch/dedupe/enrich/deliver chain | each step `exit 0` |
-| Scenario C — `hf_papers + reddit_ml` disabled | other 16 sources continue, **166 items** |
-| Scenario D — equal score, different velocity | fresh velocity preferred (1.300 vs 1.006) |
-| Top-30 enrichment wall time | ≈ 3 s |
-| delivery self-test suite | **14/14 pass** (escape, link with underscore, chunk paragraph split, hard split, notion blocks, env-missing exit 0) |
-| arxiv body extraction parity (summary == body_excerpt) | 37/37 = **100%** |
-| Telegram self-test (HTML escape, no double-escape, link with underscore URL) | pass |
+| Fetch/dedupe/enrich/shortlist artifacts | `state/raw/$DATE-$SLOT.{json,dedup.json,enriched.json,shortlist.json}` |
+| Hallucination loop record | footer must include `hallu_fetched=N, hallu_fetch_failed=M` |
+| Postcheck | validates topic time signals, slot-window freshness, and hallucination-loop record |
+| Publish check | confirms canonical brief + Obsidian export exist on `origin/claude/brief-stream` |
+| Website bridge | `push_brief_stream.sh` rebuilds `briefs.json` for `taewoopark.com/trendchaser` |
+| Delivery self-tests | cover HTML escaping, underscore URLs, split markers, chunk fallback, Notion blocks, env-missing exit 0 |
 
-Live operation: routine runs four times a day at 10:00 / 14:00 / 18:00 / 22:00 KST; first sample brief delivered as a single 3478-char Telegram chunk.
+Live operation: routine runs four times a day at 10:00 / 14:00 / 18:00 / 22:00 KST. Recent live briefs show the full card/detail format, `hallu_*` diagnostics, and `TC-SCORES` footer used by the website.
 
 ---
 
 ## Design principles
 
-- **News-brief tone, not LinkedIn tone.** Headline + 3–5 plain sentences. No bullet salad, no "thought leadership," no empty adjectives like "groundbreaking."
+- **News-brief tone, not LinkedIn tone.** Compact topic cards plus grounded detail. No bullet salad, no "thought leadership," no empty adjectives like "groundbreaking."
 - **Hour-resolution recency.** A story published 3 hours ago beats one from yesterday — even if yesterday's was technically "more relevant." Stale wins are not wins.
 - **Cumulative deduplication.** A 14-day rolling window over every brief ever sent. Repeats die at source.
 - **Source URL integrity.** Only URLs the fetcher actually collected. No synthesizing, no shortening, no replacing with search results. If verification fails, the item is dropped.
@@ -507,6 +541,7 @@ User-facing change logs for every revision that affects what shows up in the bri
 
 | Date | Note | Headline |
 |---|---|---|
+| 2026-06-12 | [`releases/2026-06-12.md`](./releases/2026-06-12.md) · [한국어](./releases/2026-06-12.ko.md) | Current PRISMA loop documented - 67 enabled channels, X follow-list fan-out, topic-card briefs, hallucination verification, GraphRAG export, and ff-only `brief-stream` publishing |
 | 2026-05-11 | [`releases/2026-05-11.md`](./releases/2026-05-11.md) · [한국어](./releases/2026-05-11.ko.md) | Freshness gates land — old articles stop being tagged as "just published," dead Meta/Mistral RSS replaced with live release atoms, X channels start flowing again |
 | 2026-05-04 | [`releases/2026-05-04.md`](./releases/2026-05-04.md) · [한국어](./releases/2026-05-04.ko.md) | Release-firehose expansion + novelty axis — first-party signal pushed to the top of the brief |
 
