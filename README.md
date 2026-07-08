@@ -128,13 +128,13 @@ PRISMA-Codex runs the whole pipeline at each slot through GitHub Actions plus Co
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="./assets/architecture-dark.svg">
-    <img alt="Trendchaser system architecture - 101 enabled source channels plus the X follow-list fan-out move through fetch, deduplicate, enrich, score, write, validate, publish, and deliver gates; state is persisted across main and claude/brief-stream, then sent to Telegram, KakaoTalk, Obsidian, the graph layer, and optional Notion archive." src="./assets/architecture.svg" width="100%">
+    <img alt="Trendchaser system architecture - 184 effective enabled channels, including the X follow-list counted per account, move through fetch, deduplicate, enrich, score, write, validate, publish, and deliver gates; state is persisted across main and claude/brief-stream, then sent to Telegram, KakaoTalk, Obsidian, the graph layer, and optional Notion archive." src="./assets/architecture.svg" width="100%">
   </picture>
 </p>
 
 | # | Stage | What it does |
 |--:|---|---|
-| 1 | **Fetch** | 101 enabled source channels polled in parallel, plus the X following fan-out; each source best-effort, failures isolated |
+| 1 | **Fetch** | 184 effective enabled channels polled in parallel when the X following fan-out is counted per account; 101 enabled config entries; each source best-effort, failures isolated |
 | 2 | **Deduplicate** | persistent 14-day state, cross-source batch dedup, brief-stream overlay, stray-branch overlay, semantic brief-history scan |
 | 3 | **Enrich + Shortlist** | body extraction for the top 45 candidates, then a deterministic 3x shortlist with source, aggregator, and trending caps |
 | 4 | **Score + Review** | 6-axis composite against `profile.md`, source-tier gates, stale-trending rules, hallucination/source verification loop |
@@ -218,12 +218,12 @@ KakaoTalk relay is downstream of Telegram. The brief is also published to `claud
 
 ## Source catalog
 
-As of the PRISMA-Codex expansion (2026-07-07), `sources.yaml` has **116 configured sources** and **101 enabled source channels**. The old Claude Routine surface has moved to GitHub Actions + Codex auth; the X/watch proxy remains separate so tokens, account names, and follow-list contents stay out of this public report. Disabled paths remain documented in config but are not counted here: retired feeds, Gmail newsletters, unstable YouTube RSS, low-signal X search, and experimental handles that are not part of the live loop.
+As of the PRISMA-Codex expansion (2026-07-07), `sources.yaml` has **116 configured sources**, **101 enabled config entries**, and **184 effective enabled channels** when the private X follow-list is counted per account. The old Claude Routine surface has moved to GitHub Actions + Codex auth; the X/watch proxy remains separate so tokens, account names, and follow-list contents stay out of this public report. Disabled paths remain documented in config but are not counted here: retired feeds, Gmail newsletters, unstable YouTube RSS, low-signal X search, and experimental handles that are not part of the live loop.
 
 | Category | Count | Role |
 |---|---:|---|
 | RSS / Atom firehose | **43** | first-party blogs, release atoms, curators, Korean dev blogs, longform, aggregators |
-| X via Vercel proxy | **12** | one private follow-list fan-out plus official / high-signal handles |
+| X via Vercel proxy | **95 effective** | 84 private follow-list accounts plus 11 direct official / high-signal handles; account inventory is not public |
 | Vercel watch | **17** | docs, leaderboards, conference pages, OpenReview venue pages without stable RSS |
 | Scholarly APIs + conference/proceedings | **13** | arXiv, Semantic Scholar, OpenAlex, Papers With Code, ICML/NeurIPS/ICLR/MLSys schedules, ACL/CVPR proceedings |
 | Hugging Face native surfaces | **4** | HF Papers, HF Models new/trending, HF community posts |
@@ -231,7 +231,7 @@ As of the PRISMA-Codex expansion (2026-07-07), `sources.yaml` has **116 configur
 | Hacker News | **3** | top, breaking, and AI keyword search |
 | Social/community smoke | **5** | Bluesky, Mastodon, Reddit MachineLearning, Reddit LocalLLaMA |
 | Sitemap | **1** | Anthropic news sitemap |
-| **Total enabled** | **101** | public count excludes private X account inventory |
+| **Total effective enabled** | **184** | counts private X follow-list accounts individually while excluding their identities from the public report |
 
 ### PRISMA-Codex Expansion
 
@@ -394,7 +394,7 @@ GitHub `releases.atom` updates within seconds of a tag push — effectively real
 
 ### X curation (limited)
 
-Twelve `vercel_x` channels are enabled: the private `x_my_following` fan-out plus official lab handles and selected high-signal researcher handles. The official X API is **not** used — instead, a small self-hosted Vercel relay returns raw text only. Public logs keep success/failure status but never expose tokens, account inventory, or follow-list contents. `x_my_following` is the main surface, with a 24h lookback so the cron warmer's lag does not drop fresh posts. Channel rotation needs no code change.
+The X surface has **95 effective channels**: 84 private `x_my_following` accounts plus 11 direct official lab / high-signal researcher handles. In `sources.yaml`, that appears as 12 enabled `vercel_x` config entries because `x_my_following` fans out privately. The official X API is **not** used — instead, a small self-hosted Vercel relay returns raw text only. Public logs keep success/failure status but never expose tokens, account inventory, or follow-list contents. `x_my_following` is the main surface, with a 24h lookback so the cron warmer's lag does not drop fresh posts. Channel rotation needs no code change.
 
 ### Longform & Essays
 
@@ -608,7 +608,7 @@ User-facing change logs for every revision that affects what shows up in the bri
 
 | Date | Note | Headline |
 |---|---|---|
-| 2026-07-07 | [`releases/2026-07-07.md`](./releases/2026-07-07.md) · [한국어](./releases/2026-07-07.ko.md) | PRISMA-Codex migration - GitHub Actions + Codex auth, 101 enabled channels, academic/source expansion, cross-source confirmation, and stricter scheduled-slot guards |
+| 2026-07-07 | [`releases/2026-07-07.md`](./releases/2026-07-07.md) · [한국어](./releases/2026-07-07.ko.md) | PRISMA-Codex migration - GitHub Actions + Codex auth, 184 effective enabled channels, academic/source expansion, cross-source confirmation, and stricter scheduled-slot guards |
 | 2026-06-12 | [`releases/2026-06-12.md`](./releases/2026-06-12.md) · [한국어](./releases/2026-06-12.ko.md) | Current PRISMA loop documented - 67 enabled channels, X follow-list fan-out, topic-card briefs, hallucination verification, GraphRAG export, and ff-only `brief-stream` publishing |
 | 2026-05-11 | [`releases/2026-05-11.md`](./releases/2026-05-11.md) · [한국어](./releases/2026-05-11.ko.md) | Freshness gates land — old articles stop being tagged as "just published," dead Meta/Mistral RSS replaced with live release atoms, X channels start flowing again |
 | 2026-05-04 | [`releases/2026-05-04.md`](./releases/2026-05-04.md) · [한국어](./releases/2026-05-04.ko.md) | Release-firehose expansion + novelty axis — first-party signal pushed to the top of the brief |

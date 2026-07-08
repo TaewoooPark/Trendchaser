@@ -47,8 +47,8 @@
   <circle class="fill" cx="150" cy="222" r="3.3"/>
   <circle class="fill" cx="150" cy="247" r="3.3"/>
   <circle class="fill" cx="150" cy="272" r="3.3"/>
-  <text x="150" y="306" text-anchor="middle" font-size="13" font-weight="700">101 SOURCES</text>
-  <text x="150" y="323" text-anchor="middle" class="m" font-size="9.5" fill="#9a9a9a">+ private X fan-out</text>
+  <text x="150" y="306" text-anchor="middle" font-size="13" font-weight="700">184 CHANNELS</text>
+  <text x="150" y="323" text-anchor="middle" class="m" font-size="9.5" fill="#9a9a9a">X fan-out counted</text>
 
   <!-- stage nodes -->
   <circle class="node" cx="300" cy="250" r="6"/>
